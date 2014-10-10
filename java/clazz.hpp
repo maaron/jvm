@@ -11,6 +11,11 @@ std::string clazz::name()
     return jstring_str((jstring)jvm::call_method<jobject>(_class, getName));
 }
 
+object clazz::static_field(const char* name)
+{
+    return object(_class).call("getField", name).call("get", object::null());
+}
+
 method clazz::lookup_method(const char* name, const std::vector<clazz>& classes)
 {
     auto methods = get_methods();

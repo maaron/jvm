@@ -41,7 +41,8 @@ bool method::is_args_assignable(const std::vector<clazz>& classes) const
     for (long i = 0; i < num_args; i++)
     {
         jclass target = (jclass)jvm::get_object_array_element(parameter_types, i);
-        if (!jvm::is_assignable_from(classes[i].native(), target)) 
+        jclass src = classes[i].native();
+        if (src != nullptr && !jvm::is_assignable_from(src, target)) 
             return false;
     }
 

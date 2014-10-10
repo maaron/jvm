@@ -11,8 +11,6 @@
 
 namespace java
 {
-    class java_exception;
-
     namespace internal
     {
         struct jvm_info { JavaVM* jvm; JNIEnv* env; };
@@ -38,6 +36,28 @@ namespace java
     // around the functions exposed by the JNI.
     namespace jvm
     {
+        jfieldID get_field_id(jclass cls, const char* name, const char* sig);
+
+        jfieldID get_static_field_id(jclass cls, const char* name, const char* sig);
+
+        template <typename jtype>
+        jtype get_field(jobject obj, jfieldID id)
+        {
+            auto env = internal::get_thread_local_vm()->env;
+            auto ret = type_traits<jtype>::get_field(env, obj, id);
+            if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
+            return ret;
+        };
+
+        template <typename jtype>
+        jtype get_static_field(jobject obj, jfieldID id)
+        {
+            auto env = internal::get_thread_local_vm()->env;
+            auto ret = type_traits<jtype>::get_static_field(env, obj, id);
+            if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
+            return ret;
+        };
+
         jclass find_class(const char* name);
 
         jclass get_object_class(jobject obj);
@@ -49,21 +69,21 @@ namespace java
         jsize get_array_length(jarray a);
         
         template <typename jtype>
-        jtype* get_array_elements(typename jni_type_traits<jtype>::array_type arr, jboolean* isCopy)
+        jtype* get_array_elements(typename type_traits<jtype>::array_type arr, jboolean* isCopy)
         {
             auto env = internal::get_thread_local_vm()->env;
-            auto ptr = jni_type_traits<jtype>::get_array_elements(env, arr, nullptr);
-            if (env->ExceptionCheck()) throw java_exception(env->ExceptionOccurred());
+            auto ptr = type_traits<jtype>::get_array_elements(env, arr, nullptr);
+            if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
             return ptr;
         }
 
         template <typename jtype>
-        void release_array_elements(typename jni_type_traits<jtype>::array_type arr, jtype* ptr, int mode)
+        void release_array_elements(typename type_traits<jtype>::array_type arr, jtype* ptr, int mode)
         {
             auto env = internal::get_thread_local_vm()->env;
-            auto fptr = jni_type_traits<jtype>::release_array_elements;
-            jni_type_traits<jtype>::release_array_elements(env, arr, ptr, mode);
-            if (env->ExceptionCheck()) throw java_exception(env->ExceptionOccurred());
+            auto fptr = type_traits<jtype>::release_array_elements;
+            type_traits<jtype>::release_array_elements(env, arr, ptr, mode);
+            if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
         }
 
         jobject get_object_array_element(jobjectArray a, jsize i);
@@ -94,8 +114,8 @@ namespace java
             auto env = internal::get_thread_local_vm()->env;
             va_list args;
             va_start(args, method);
-            auto ret = jni_type_traits<jtype>::call_static_method(env, cls, method, args);
-            if (env->ExceptionOccurred()) throw java_exception(env->ExceptionOccurred());
+            auto ret = type_traits<jtype>::call_static_method(env, cls, method, args);
+            if (env->ExceptionOccurred()) throw exception(env->ExceptionOccurred());
             va_end(args);
             return ret;
         }
@@ -108,14 +128,16 @@ namespace java
             auto env = internal::get_thread_local_vm()->env;
             va_list args;
             va_start(args, method);
-            auto ret = jni_type_traits<jtype>::call_method(env, obj, method, args);
-            if (env->ExceptionCheck()) throw java_exception(env->ExceptionOccurred());
+            auto ret = type_traits<jtype>::call_method(env, obj, method, args);
+            if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
             va_end(args);
             return ret;
         }
         template <>
         void call_method<void>(jobject obj, jmethodID method, ...);
 
+        // This function converts a Java jstring into a std::string
+        std::string jstring_str(jstring jstr);
     }
 
     enum vm_version
@@ -234,16 +256,7 @@ namespace java
 
             internal::free_tls_index();
         }
+
     };
-
-    // This function converts a Java jstring into a std::string
-    std::string jstring_str(jstring jstr);
-    
-    // Returns the name of a jclass as a string
-    std::string get_class_name(jclass cls);
-
-    // This function returns the return type of a java.lang.reflect.Method 
-    // object as a string
-    std::string get_return_type(jobject methodObj);
 
 }

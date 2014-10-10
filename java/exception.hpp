@@ -5,29 +5,30 @@
 
 using namespace java;
 
-void java_exception::suspend()
+exception::exception(jthrowable t)
+    : _t(t), _msg(""), object(t)
+{
+    suspend();
+    _msg = call("getMessage");
+    resume();
+}
+
+const char* exception::what() const
+{
+    return _msg.c_str();
+}
+
+void exception::suspend()
 {
     internal::get_thread_local_vm()->env->ExceptionClear();
 }
 
-void java_exception::resume()
+void exception::resume()
 {
-    //internal::get_thread_local_vm()->env->Throw(_t);
+    internal::get_thread_local_vm()->env->Throw(_t);
 }
 
-std::string java_exception::message()
-{
-    suspend();
-    object t(_t);
-
-    std::string ret;
-    ret = t.call("getMessage");
-    resume();
-    return ret;
-}
-
-
-void java_exception::print()
+void exception::print()
 {
     suspend();
     object t(_t);

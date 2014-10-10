@@ -35,8 +35,16 @@ namespace java
 
         std::string name();
 
+        // Returns a class field value with the given name.
+        object static_field(const char* name);
+
+        // Finds a method that is callable, given the set of classes as 
+        // method arguments.  A method is considered appropriate if it has 
+        // the correct name, correct number of arguments, and each class is 
+        // assignable to the corresponding method argument.
         method lookup_method(const char* name, const std::vector<clazz>& classes);
 
+        // Does the same as lookup_method, but for constructors.
         method lookup_constructor(const std::vector<clazz>& classes);
 
         // Returns a list of methods for this class using reflection.

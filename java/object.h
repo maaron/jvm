@@ -3,6 +3,7 @@
 namespace java
 {
     class method_list;
+    class clazz;
 
     // Enum of the various native types used by JNI.  java_void is used to 
     // represent the "return value" for Java methods that return void.
@@ -56,6 +57,9 @@ namespace java
 
             operator object();
         };
+
+        // This returns an object that serves as a "null reference" in Java
+        static object null() { return object((jobject)nullptr); }
 
         // These constructors create new Java objects of the various types.
         object()
@@ -119,6 +123,10 @@ namespace java
         // This is a convenience for creating java.lang.Class Java objects 
         // from java::clazz C++ objects.
         object(const clazz&);
+
+        // Looks up a non-static field given the name.  Throws an exception 
+        // if a field with the given name is not found.
+        object field(const char* name);
 
         // Wrapper around an object's java.lang.Object.toString() method.
         std::string to_string();

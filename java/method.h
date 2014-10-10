@@ -29,52 +29,12 @@ namespace java
         // Returns the number of arguments the method accepts
         jsize num_args();
 
+        // Checks whether the supplied classes can be assigned to the 
+        // arguments for this method.  The size of the classes array must 
+        // match the number of arguments, and each class must either be null 
+        // (always considered assignable to anything) or otherwise 
+        // assignable to the corresponding argument type.
         bool is_args_assignable(const std::vector<clazz>& classes) const;
-        /*
-        // These functions are used to determine whether the specified 
-        // classes can be used to call this method.  They check that the 
-        // method accepts the correct number of arguments and that each class 
-        // is assignable to the corresponding type that the method accepts.
-        bool matches_args()
-        {
-            auto method_class = jvm::get_object_class(_methodObj);
-            auto getParameterTypes = jvm::get_method_id(method_class, "getParameterTypes", "()[Ljava/lang/Class;");
-            auto parameter_types = (jobjectArray)jvm::call_method<jobject>(_methodObj, getParameterTypes);
-            return jvm::get_array_length(parameter_types) == 0;
-        }
-        bool matches_args(jclass a1)
-        {
-            auto method_class = jvm::get_object_class(_methodObj);
-            auto getParameterTypes = jvm::get_method_id(method_class, "getParameterTypes", "()[Ljava/lang/Class;");
-            auto parameter_types = (jobjectArray)jvm::call_method<jobject>(_methodObj, getParameterTypes);
-            if (jvm::get_array_length(parameter_types) != 1) return false;
-
-            return jvm::is_assignable_from(a1, (jclass)jvm::get_object_array_element(parameter_types, 0));
-        }
-        bool matches_args(jclass a1, jclass a2)
-        {
-            auto method_class = jvm::get_object_class(_methodObj);
-            auto getParameterTypes = jvm::get_method_id(method_class, "getParameterTypes", "()[Ljava/lang/Class;");
-            auto parameter_types = (jobjectArray)jvm::call_method<jobject>(_methodObj, getParameterTypes);
-            if (jvm::get_array_length(parameter_types) != 2) return false;
-
-            return 
-                jvm::is_assignable_from(a1, (jclass)jvm::get_object_array_element(parameter_types, 0)) &&
-                jvm::is_assignable_from(a2, (jclass)jvm::get_object_array_element(parameter_types, 1));
-        }
-        bool matches_args(jclass a1, jclass a2, jclass a3)
-        {
-            auto method_class = jvm::get_object_class(_methodObj);
-            auto getParameterTypes = jvm::get_method_id(method_class, "getParameterTypes", "()[Ljava/lang/Class;");
-            auto parameter_types = (jobjectArray)jvm::call_method<jobject>(_methodObj, getParameterTypes);
-            if (jvm::get_array_length(parameter_types) != 3) return false;
-
-            return 
-                jvm::is_assignable_from(a1, (jclass)jvm::get_object_array_element(parameter_types, 0)) &&
-                jvm::is_assignable_from(a2, (jclass)jvm::get_object_array_element(parameter_types, 1)) &&
-                jvm::is_assignable_from(a3, (jclass)jvm::get_object_array_element(parameter_types, 2));
-        }
-        */
 
         // Returns the Java type that this method returns as a string.  The 
         // contents of the string match what the java.lang.Class.getName() 

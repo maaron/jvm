@@ -76,8 +76,8 @@ namespace java
             auto env = internal::get_thread_local_vm()->env;
             va_list args;
             va_start(args, method);
-            jni_type_traits<void>::call_static_method(env, cls, method, args);
-            if (env->ExceptionOccurred()) throw java_exception(env->ExceptionOccurred());
+            type_traits<void>::call_static_method(env, cls, method, args);
+            if (env->ExceptionOccurred()) throw exception(env->ExceptionOccurred());
             va_end(args);
         }
 
@@ -87,8 +87,8 @@ namespace java
             auto env = internal::get_thread_local_vm()->env;
             va_list args;
             va_start(args, method);
-            jni_type_traits<void>::call_method(env, obj, method, args);
-            if (env->ExceptionCheck()) throw java_exception(env->ExceptionOccurred());
+            type_traits<void>::call_method(env, obj, method, args);
+            if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
             va_end(args);
         }
 
@@ -136,7 +136,7 @@ namespace java
         {
             auto env = internal::get_thread_local_vm()->env;
             env->SetObjectArrayElement(a, i, value);
-            if (env->ExceptionCheck()) throw java_exception(env->ExceptionOccurred());
+            if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
         }
 
         jstring new_string_utf(const char* data)
@@ -172,7 +172,7 @@ namespace java
             auto env = internal::get_thread_local_vm()->env;
             auto obj = env->NewObjectV(cls, ctor, args);
             va_end(args);
-            if (env->ExceptionCheck()) throw java_exception(env->ExceptionOccurred());
+            if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
             return obj;
         }
 
@@ -180,7 +180,7 @@ namespace java
         {
             auto env = internal::get_thread_local_vm()->env;
             auto ret = env->NewObjectArray(length, cls, initial);
-            if (env->ExceptionCheck()) throw java_exception(env->ExceptionOccurred());
+            if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
             return ret;
         }
 
@@ -203,15 +203,15 @@ namespace java
             return method;
         }
 
-    }
+        // This function converts a Java jstring into a std::string
+        std::string jstring_str(jstring jstr)
+        {
+            auto data = jvm::get_string_utf_chars(jstr);
+            std::string ret(data);
+            jvm::release_string_utf_chars(jstr, data);
+            return ret;
+        }
 
-    // This function converts a Java jstring into a std::string
-    std::string jstring_str(jstring jstr)
-    {
-        auto data = jvm::get_string_utf_chars(jstr);
-        std::string ret(data);
-        jvm::release_string_utf_chars(jstr, data);
-        return ret;
     }
 
 }

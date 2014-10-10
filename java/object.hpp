@@ -34,7 +34,7 @@ jclass object::native_class()
     case java_long: return jvm::find_class("java/lang/Long");
     case java_float: return jvm::find_class("java/lang/Float");
     case java_double: return jvm::find_class("java/lang/Double");
-    case java_object: return jvm::get_object_class(_value.l);
+    case java_object: return _value.l == nullptr ? nullptr : jvm::get_object_class(_value.l);
     default:
         throw std::exception("Unsupported Java type");
     }
@@ -57,20 +57,11 @@ std::string object::to_string()
     auto toString = jvm::get_method_id(jvm::find_class("java/lang/Object"), "toString", "()Ljava/lang/String;");
     return jstring_str((jstring)jvm::call_method<jobject>(_value.l, toString));
 }
-/*
-method_list object::get_methods()
+
+object object::field(const char* name)
 {
-    // Get the java.lang.Class object associated with this class.
-    jclass cls = jvm::get_object_class(native_object());
-
-    // Get an array of methods
-    auto getMethods = jvm::get_method_id(cls, "getMethods", "()[Ljava/lang/reflect/Method;");
-    auto methods = (jobjectArray)jvm::call_method<jobject>(native_class(), getMethods);
-
-    return method_list(native_class(), methods);
+    return get_clazz().call_static("getField", name).call("get", *this);
 }
-*/
-method_list get_methods();
 
 #define call_method(obj, id, return_type, ...) \
 { \
