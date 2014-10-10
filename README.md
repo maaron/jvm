@@ -15,7 +15,7 @@ well.
 
 
 How To Use:
-===========
+-----------
 Here are a list of pre-requisites to get things working:
 
 1. Make sure the include and include\win32 folders are both added to your IDE's #include search path.  These are part of the Java Development Kit (JDK), typically located somewhere like C:\Program Files (x86)\Java\jdk1.7.0_07\include.
@@ -29,7 +29,7 @@ Here are a list of pre-requisites to get things working:
 Here's a
 test program to make sure you've got everything setup correctly:
 
-```
+```cpp
 #include "java.h"
 #include <iostream>
 
