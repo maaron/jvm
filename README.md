@@ -26,8 +26,7 @@ Here are a list of pre-requisites to get things working:
 
 4. Make sure the jre\bin\client folder from the JDK (or a JRE) is in the executable search path at runtime.  If you have the JDK installed (which you must from steps 1 and 3), it will be located somewhere like C:\Program Files (x86)\Java\jdk1.7.0_07\jre\bin\client.
 
-Here's a
-test program to make sure you've got everything setup correctly:
+Here's a test program to make sure you've got everything setup correctly:
 
 ```cpp
 #include "java.h"
@@ -37,10 +36,9 @@ int main()
 {
     java::vm jvm;
 
-    java::object java_string("Hello, World!");
-
-    std::cout << java_string.to_string() << std::endl;
+    java::clazz("java/lang/System").static_field("out").call("println", "Hello, World!");
 
     return 0;
 }
 ```
+
