@@ -66,7 +66,7 @@ namespace java
         // if an appropriate method is not found.  Also, the first method 
         // which accepts the given arguments is called, even if there is a 
         // "better" match.  For now, if it is necessary to disambiguate, the
-        // low-level jvm::call_xxx_method() functions must be used.
+        // low-level jni::call_xxx_method() functions must be used.
         object call_static (const char* method_name);
         object call_static (const char* method_name, object a1);
         object call_static (const char* method_name, object a1, object a2);

@@ -5,7 +5,7 @@
 namespace java
 {
 
-    namespace jvm
+    namespace jni
     {
 
         template <typename jtype>

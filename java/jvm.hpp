@@ -67,7 +67,7 @@ namespace java
 
     }
 
-    namespace jvm
+    namespace jni
     {
         jclass define_class(const char* name, jobject loader, jbyte* data, jsize size)
         {
@@ -265,9 +265,9 @@ namespace java
         // This function converts a Java jstring into a std::string
         std::string jstring_str(jstring jstr)
         {
-            auto data = jvm::get_string_utf_chars(jstr);
+            auto data = jni::get_string_utf_chars(jstr);
             std::string ret(data);
-            jvm::release_string_utf_chars(jstr, data);
+            jni::release_string_utf_chars(jstr, data);
             return ret;
         }
 

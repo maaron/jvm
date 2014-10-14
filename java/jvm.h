@@ -7,13 +7,16 @@
 
 #include "java\type_traits.h"
 #include <vector>
+
+#ifdef DEBUG_REFS
 #include <list>
+#endif
 
 namespace java
 {
     namespace internal
     {
-        struct jvm_info { JavaVM* jvm; JNIEnv* env; };
+        struct jvm_info { JNIEnv* env; };
 
         // This function allocates TLS in order store a single Java VM
         // instance.  This allows a thread to associate a VM with itself so
@@ -33,8 +36,9 @@ namespace java
     }
 
     // The functions in this namespace are exception-throwing wrappers 
-    // around the functions exposed by the JNI.
-    namespace jvm
+    // around the functions exposed by the JNI.  See the JNI documentation 
+    // for further information.
+    namespace jni
     {
         jclass define_class(const char* name, jbyte* data, jsize size);
 
@@ -170,6 +174,9 @@ namespace java
 
     }
 
+    // This class provides automatic garbage collection for local references 
+    // returned by the JNI.  It is implemented using reference counting 
+    // internally (std::shared_ptr).
     template <typename jobject_t>
     class local_ref
     {
@@ -189,7 +196,7 @@ namespace java
 
         local_ref() {}
 
-        local_ref(jobject native) : _ref((pointer_type)native, jvm::delete_local_ref) {}
+        local_ref(jobject native) : _ref((pointer_type)native, jni::delete_local_ref) {}
 
         template <typename rhs_jobject_t>
         bool operator== (const local_ref<rhs_jobject_t>& rhs) const { return static_cast<jobject>(_ref.get()) == static_cast<jobject>(rhs._ref.get()); }
@@ -254,9 +261,14 @@ namespace java
     // to this object to any of those functions.  Internally, a pointer to the
     // JVM (JavaVM*) is maintained in thread-local storage.  This implies that
     // the functions in this namespace can also be called from the same thread
-    // that initialized the JVM via this class.
+    // that initialized the JVM via this class (unless the caller uses the 
+    // attach_thread function or vm_thread class to attach additional 
+    // threads).
     class vm
     {
+        JavaVM* _jvm;
+        bool _is_owner;
+
         void init(const vm_args& args)
         {
             JavaVMInitArgs internal_args;
@@ -280,7 +292,7 @@ namespace java
 
             auto info = new internal::jvm_info();
 
-            jint status = JNI_CreateJavaVM(&info->jvm, (void**)&info->env, &internal_args);
+            jint status = JNI_CreateJavaVM(&_jvm, (void**)&info->env, &internal_args);
             if (status != JNI_OK)
             {
                 throw std::exception("JNI_CreateJavaVM failed");
@@ -292,31 +304,89 @@ namespace java
     public:
         // Creates and initializes a new JVM instance using the specified 
         // arguments.
-        vm(const vm_args& args)
+        vm(const vm_args& args) : _is_owner(true)
         {
             init(args);
         }
 
         // Creates and initializes a new JVM instance using a default set of 
         // arguments.
-        vm()
+        vm() : _is_owner(true)
         {
             init(vm_args());
         }
 
-        // Destroys the object and the JVM instance along with it.
+        // This constructor can be used by Java extension libraries written 
+        // in C++.  
+        vm(JNIEnv* env) : _is_owner(false)
+        {
+            if (env->GetJavaVM(&_jvm) != 0)
+                throw std::exception("GetJavaVM failed");
+
+            auto info = new internal::jvm_info();
+            info->env = env;
+            internal::set_thread_local_vm(info);
+        }
+
+        // Destroys the object and the JVM instance along with it, unless 
+        // the vm was constructed using a pre-existing JNIEnv pointer.
         ~vm()
         {
             auto info = internal::get_thread_local_vm();
             if (info != nullptr)
             {
-                info->jvm->DestroyJavaVM();
+                if (_is_owner) _jvm->DestroyJavaVM();
                 delete info;
             }
 
             internal::free_tls_index();
         }
 
+        // Attaches the current thread to this JVM.  Make sure to call 
+        // detach_thread to reclaim memory before the thread exits.  This 
+        // does not currently support JavaVMAttachArgs.
+        void attach_thread()
+        {
+            auto info = new internal::jvm_info();
+
+            if (_jvm->AttachCurrentThread((void**)&info->env, nullptr) != JNI_OK)
+                throw std::exception("AttachCurrentThread failed");
+
+            internal::set_thread_local_vm(info);
+        }
+
+        // Detaches the current thread from this JVM, and frees thread-local 
+        // memory.
+        void detach_thread()
+        {
+            if (_jvm->DetachCurrentThread() != JNI_OK)
+                throw std::exception("DetachCurrentThread failed");
+
+            auto info = internal::get_thread_local_vm();
+            if (info != nullptr) delete info;
+        }
+    };
+
+    // This class is useful for safely attaching and detaching a thread 
+    // to/from a JVM.  The constructor attaches and the destructor detaches, 
+    // such that if the object is allocated on the stack, the detachment 
+    // will be automatic.  The caller is responsible for ensuring that the 
+    // JVM (java::vm object) remains valid for the lifetime of the vm_thread
+    // object.  This does not currently support JavaVMAttachArgs.
+    class vm_thread
+    {
+        vm& _jvm;
+
+    public:
+        vm_thread(vm& jvm) : _jvm(jvm)
+        {
+            _jvm.attach_thread();
+        }
+
+        ~vm_thread()
+        {
+            _jvm.detach_thread();
+        }
     };
 
 }

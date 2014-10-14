@@ -1,7 +1,7 @@
 
 #include "java\type_traits.h"
 
-using namespace java::jvm;
+using namespace java::jni;
 
 type_traits<void>::jni_type type_traits<void>::call_methodv(JNIEnv* env, jobject obj, jmethodID id, va_list args) { return env->CallVoidMethodV(obj, id, args); }
 type_traits<void>::jni_type type_traits<void>::call_static_methodv(JNIEnv* env, jclass cls, jmethodID id, va_list args) { return env->CallStaticVoidMethodV(cls, id, args); }
