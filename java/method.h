@@ -11,14 +11,14 @@ namespace java
     // Reflection is used to gather method details from the JVM.
     class method
     {
-        jclass _class;
+        local_ref<jclass> _class;
         jmethodID _id;
-        jobject _methodObj;
+        local_ref<jobject> _methodObj;
 
     public:
         method();
         
-        method(jclass cls, jobject methodObj);
+        method(local_ref<jclass> cls, local_ref<jobject> methodObj);
 
         // Returns the native JVM jmethodID for this method
         jmethodID id() { return _id; }
@@ -46,20 +46,20 @@ namespace java
     // index into a Java java.lang.reflect.Method[] array.
     class method_iterator : public std::iterator<std::forward_iterator_tag, method>
     {
-        jclass _class;
-        jobjectArray _array;
+        local_ref<jclass> _class;
+        local_ref<jobjectArray> _methods;
         jsize _index;
         method _current;
 
     public:
-        method_iterator(jclass cls, jobjectArray a, jsize i)
-            : _class(cls), _array(a), _index(i), _current()
+        method_iterator(local_ref<jclass> cls, local_ref<jobjectArray> methods, jsize i)
+            : _class(cls), _methods(methods), _index(i), _current()
         {
         }
 
         bool operator== (const method_iterator& rhs)
         {
-            return _array == rhs._array && _index == rhs._index;
+            return _methods == rhs._methods && _index == rhs._index;
         }
 
         bool operator!= (const method_iterator& rhs) { return !this->operator==(rhs); }
@@ -102,12 +102,12 @@ namespace java
     // reflection by wrapping a java.lang.reflect.Method[] array.
     class method_list
     {
-        jclass _class;
-        jobjectArray _array;
+        local_ref<jclass> _class;
+        local_ref<jobjectArray> _methods;
         jsize _size;
 
     public:
-        method_list(jclass cls, jobjectArray a);
+        method_list(local_ref<jclass> cls, local_ref<jobjectArray> methods);
 
         method_iterator begin();
 

@@ -8,21 +8,18 @@ using namespace java;
 object::object(const char* str)
     : _type(java_object)
 {
-    _value.l = jvm::new_string_utf(str);
+    _ref = jvm::new_string_utf(str);
+    _value.l = _ref.get();
 }
 
 object::object(const clazz& cls)
     : _type(java_object)
 {
-    _value.l = cls.native();
+    _ref = cls.ref();
+    _value.l = _ref.get();
 }
 
 clazz object::get_clazz()
-{
-    return clazz(native_class());
-}
-
-jclass object::native_class()
 {
     switch (_type)
     {
@@ -34,7 +31,7 @@ jclass object::native_class()
     case java_long: return jvm::find_class("java/lang/Long");
     case java_float: return jvm::find_class("java/lang/Float");
     case java_double: return jvm::find_class("java/lang/Double");
-    case java_object: return _value.l == nullptr ? nullptr : jvm::get_object_class(_value.l);
+    case java_object: return _value.l == nullptr ? clazz() : clazz(jvm::get_object_class(_value.l));
     default:
         throw std::exception("Unsupported Java type");
     }
@@ -49,13 +46,14 @@ jsize object::array_size()
 object::array_element object::operator[](size_t index)
 {
     if (_type != java_object) throw std::exception("Not an object type");
-    return array_element(_value.l, index);
+    return array_element(*this, index);
 }
 
 std::string object::to_string()
 {
-    auto toString = jvm::get_method_id(jvm::find_class("java/lang/Object"), "toString", "()Ljava/lang/String;");
-    return jstring_str((jstring)jvm::call_method<jobject>(_value.l, toString));
+    auto toString = jvm::get_method_id(get_clazz().native(), "toString", "()Ljava/lang/String;");
+    local_ref<jstring> jstr(jvm::call_method<jobject>(_value.l, toString));
+    return jstring_str(jstr.get());
 }
 
 object object::field(const char* name)
@@ -63,31 +61,49 @@ object object::field(const char* name)
     return get_clazz().call_static("getField", name).call("get", *this);
 }
 
-#define call_method(obj, id, return_type, ...) \
-{ \
-    if (return_type == "void") \
-    { \
-        jvm::call_method<void>(obj, id, __VA_ARGS__); \
-        return object(); \
-    } \
-    else if (return_type == "boolean") \
-        return object(jvm::call_method<jboolean>(obj, id, __VA_ARGS__)); \
-    else if (return_type == "byte") \
-        return object(jvm::call_method<jbyte>(obj, id, __VA_ARGS__)); \
-    else if (return_type == "char") \
-        return object(jvm::call_method<jchar>(obj, id, __VA_ARGS__)); \
-    else if (return_type == "double") \
-        return object(jvm::call_method<jdouble>(obj, id, __VA_ARGS__)); \
-    else if (return_type == "float") \
-        return object(jvm::call_method<jfloat>(obj, id, __VA_ARGS__)); \
-    else if (return_type == "int") \
-        return object(jvm::call_method<jint>(obj, id, __VA_ARGS__)); \
-    else if (return_type == "long") \
-        return object(jvm::call_method<jlong>(obj, id, __VA_ARGS__)); \
-    else if (return_type == "short") \
-        return object(jvm::call_method<jshort>(obj, id, __VA_ARGS__)); \
-    else \
-        return object(jvm::call_method<jobject>(obj, id, __VA_ARGS__)); \
+object call_method(jobject obj, std::string& return_type, jmethodID id, ...)
+{
+    va_list args;
+    va_start(args, id);
+
+    object ret;
+
+    try
+    {
+        auto rtype = return_type;
+        if (return_type == "void")
+        {
+            jvm::call_methodv<void>(obj, id, args);
+            ret = object();
+        }
+        else if (rtype == "boolean")
+            ret = object(jvm::call_methodv<jboolean>(obj, id, args));
+        else if (rtype == "byte")
+            ret = object(jvm::call_methodv<jbyte>(obj, id, args));
+        else if (rtype == "char")
+            ret = object(jvm::call_methodv<jchar>(obj, id, args));
+        else if (rtype == "double")
+            ret = object(jvm::call_methodv<jdouble>(obj, id, args));
+        else if (rtype == "float")
+            ret = object(jvm::call_methodv<jfloat>(obj, id, args));
+        else if (rtype == "int")
+            ret = object(jvm::call_methodv<jint>(obj, id, args));
+        else if (rtype == "long")
+            ret = object(jvm::call_methodv<jlong>(obj, id, args));
+        else if (rtype == "short")
+            ret = object(jvm::call_methodv<jshort>(obj, id, args));
+        else
+            ret = object(jvm::call_methodv<jobject>(obj, id, args));
+    }
+    catch (...)
+    {
+        va_end(args);
+        throw;
+    }
+
+    va_end(args);
+
+    return ret;
 }
 
 // These functions call Java methods on the object given the method 
@@ -97,14 +113,14 @@ object object::call(const char* method_name)
 {
     std::vector<clazz> classes;
     auto m = get_clazz().lookup_method(method_name, classes);
-    call_method(_value.l, m.id(), m.return_type());
+    return call_method(_value.l, m.return_type(), m.id());
 }
 object object::call(const char* method_name, object a1)
 {
     std::vector<clazz> classes;
     classes.push_back(a1.get_clazz());
     auto m = get_clazz().lookup_method(method_name, classes);
-    call_method(_value.l, m.id(), m.return_type(), a1.native_object());
+    return call_method(_value.l, m.return_type(), m.id(), a1.native());
 }
 object object::call(const char* method_name, object a1, object a2)
 {
@@ -112,7 +128,7 @@ object object::call(const char* method_name, object a1, object a2)
     classes.push_back(a1.get_clazz());
     classes.push_back(a2.get_clazz());
     auto m = get_clazz().lookup_method(method_name, classes);
-    call_method(_value.l, m.id(), m.return_type(), a1.native_object(), a2.native_object());
+    return call_method(_value.l, m.return_type(), m.id(), a1.native(), a2.native());
 }
 object object::call(const char* method_name, object a1, object a2, object a3)
 {
@@ -121,28 +137,28 @@ object object::call(const char* method_name, object a1, object a2, object a3)
     classes.push_back(a2.get_clazz());
     classes.push_back(a3.get_clazz());
     auto m = get_clazz().lookup_method(method_name, classes);
-    call_method(_value.l, m.id(), m.return_type(), a1.native_object(), a2.native_object(), a3.native_object());
+    return call_method(_value.l, m.return_type(), m.id(), a1.native(), a2.native(), a3.native());
 }
 
 #undef call_method
 
-object::array_element::array_element(jobject arr, size_t index)
-    : _array((jarray)arr), _modified(false), _index(index)
+object::array_element::array_element(object arr, size_t index)
+    : _ref(arr.ref()), _modified(false), _index(index)
 {
-    auto class_name = clazz(jvm::get_object_class(arr)).name();
+    auto class_name = arr.get_clazz().name();
     if (class_name.size() < 2 || class_name[0] != '[') throw std::exception("Not an array type");
 
     switch (class_name[1])
     {
-    case 'Z': _type = java_boolean; _ptr = jvm::get_array_elements<jboolean>((jbooleanArray)_array, nullptr); break;
-    case 'B': _type = java_byte; _ptr = jvm::get_array_elements<jbyte>((jbyteArray)_array, nullptr); break;
-    case 'C': _type = java_char; _ptr = jvm::get_array_elements<jchar>((jcharArray)_array, nullptr); break;
+    case 'Z': _type = java_boolean; _ptr = jvm::get_array_elements<jboolean>((jbooleanArray)_ref.get(), nullptr); break;
+    case 'B': _type = java_byte; _ptr = jvm::get_array_elements<jbyte>((jbyteArray)_ref.get(), nullptr); break;
+    case 'C': _type = java_char; _ptr = jvm::get_array_elements<jchar>((jcharArray)_ref.get(), nullptr); break;
     case 'L': _type = java_object; _ptr = nullptr; break;
-    case 'D': _type = java_double; _ptr = jvm::get_array_elements<jdouble>((jdoubleArray)_array, nullptr); break;
-    case 'F': _type = java_float; _ptr = jvm::get_array_elements<jfloat>((jfloatArray)_array, nullptr); break;
-    case 'I': _type = java_int; _ptr = jvm::get_array_elements<jint>((jintArray)_array, nullptr); break;
-    case 'J': _type = java_long; _ptr = jvm::get_array_elements<jlong>((jlongArray)_array, nullptr); break;
-    case 'S': _type = java_short; _ptr = jvm::get_array_elements<jshort>((jshortArray)_array, nullptr); break;
+    case 'D': _type = java_double; _ptr = jvm::get_array_elements<jdouble>((jdoubleArray)_ref.get(), nullptr); break;
+    case 'F': _type = java_float; _ptr = jvm::get_array_elements<jfloat>((jfloatArray)_ref.get(), nullptr); break;
+    case 'I': _type = java_int; _ptr = jvm::get_array_elements<jint>((jintArray)_ref.get(), nullptr); break;
+    case 'J': _type = java_long; _ptr = jvm::get_array_elements<jlong>((jlongArray)_ref.get(), nullptr); break;
+    case 'S': _type = java_short; _ptr = jvm::get_array_elements<jshort>((jshortArray)_ref.get(), nullptr); break;
     default:
         throw std::exception("Unsupported Java type");
     }
@@ -154,15 +170,15 @@ object::array_element::~array_element()
 
     switch (_type)
     {
-    case java_boolean: jvm::release_array_elements<jboolean>((jbooleanArray)_array, (jboolean*)_ptr, mode); break;
-    case java_byte: jvm::release_array_elements<jbyte>((jbyteArray)_array, (jbyte*)_ptr, mode); break;
-    case java_char: jvm::release_array_elements<jchar>((jcharArray)_array, (jchar*)_ptr, mode); break;
+    case java_boolean: jvm::release_array_elements<jboolean>((jbooleanArray)_ref.get(), (jboolean*)_ptr, mode); break;
+    case java_byte: jvm::release_array_elements<jbyte>((jbyteArray)_ref.get(), (jbyte*)_ptr, mode); break;
+    case java_char: jvm::release_array_elements<jchar>((jcharArray)_ref.get(), (jchar*)_ptr, mode); break;
     case java_object: break;
-    case java_float: jvm::release_array_elements<jfloat>((jfloatArray)_array, (jfloat*)_ptr, mode); break;
-    case java_double: jvm::release_array_elements<jdouble>((jdoubleArray)_array, (jdouble*)_ptr, mode); break;
-    case java_int: jvm::release_array_elements<jint>((jintArray)_array, (jint*)_ptr, mode); break;
-    case java_long: jvm::release_array_elements<jlong>((jlongArray)_array, (jlong*)_ptr, mode); break;
-    case java_short: jvm::release_array_elements<jshort>((jshortArray)_array, (jshort*)_ptr, mode); break;
+    case java_float: jvm::release_array_elements<jfloat>((jfloatArray)_ref.get(), (jfloat*)_ptr, mode); break;
+    case java_double: jvm::release_array_elements<jdouble>((jdoubleArray)_ref.get(), (jdouble*)_ptr, mode); break;
+    case java_int: jvm::release_array_elements<jint>((jintArray)_ref.get(), (jint*)_ptr, mode); break;
+    case java_long: jvm::release_array_elements<jlong>((jlongArray)_ref.get(), (jlong*)_ptr, mode); break;
+    case java_short: jvm::release_array_elements<jshort>((jshortArray)_ref.get(), (jshort*)_ptr, mode); break;
     default:
         throw std::exception("Unsupported Java type");
     }
@@ -176,7 +192,7 @@ object::array_element& object::array_element::operator= (const object& rhs)
     case java_boolean: ((jboolean*)_ptr)[_index] = rhs.as_bool(); break;
     case java_byte: ((jbyte*)_ptr)[_index] = rhs.as_byte(); break;
     case java_char: ((jchar*)_ptr)[_index] = rhs.as_char(); break;
-    case java_object: jvm::set_object_array_element((jobjectArray)_array, _index, rhs.native_object()); break;
+    case java_object: jvm::set_object_array_element((jobjectArray)_ref.get(), _index, rhs.native()); break;
     case java_float: ((jfloat*)_ptr)[_index] = rhs.as_float(); break;
     case java_double: ((jdouble*)_ptr)[_index] = rhs.as_double(); break;
     case java_int: ((jint*)_ptr)[_index] = rhs.as_int(); break;
@@ -197,7 +213,7 @@ object::array_element::operator object()
     case java_boolean: return object(((jboolean*)_ptr)[_index]); break;
     case java_byte: return object(((jbyte*)_ptr)[_index]); break;
     case java_char: return object(((jchar*)_ptr)[_index]); break;
-    case java_object: return jvm::get_object_array_element((jobjectArray)_array, _index); break;
+    case java_object: return jvm::get_object_array_element((jobjectArray)_ref.get(), _index); break;
     case java_float: return object(((jfloat*)_ptr)[_index]); break;
     case java_double: return object(((jdouble*)_ptr)[_index]); break;
     case java_int: return object(((jint*)_ptr)[_index]); break;
@@ -225,7 +241,7 @@ namespace java
         std::vector<clazz> classes;
         classes.push_back(a1.get_clazz());
         auto ctor = cls.lookup_constructor(classes);
-        return jvm::new_object(cls.native(), ctor.id(), a1.native_object());
+        return jvm::new_object(cls.native(), ctor.id(), a1.native());
     }
 
     object create(const char* class_name, object a1, object a2)
@@ -235,7 +251,7 @@ namespace java
         classes.push_back(a1.get_clazz());
         classes.push_back(a2.get_clazz());
         auto ctor = cls.lookup_constructor(classes);
-        return jvm::new_object(cls.native(), ctor.id(), a1.native_object(), a2.native_object());
+        return jvm::new_object(cls.native(), ctor.id(), a1.native(), a2.native());
     }
 
     object create(const char* class_name, object a1, object a2, object a3)
@@ -246,14 +262,14 @@ namespace java
         classes.push_back(a2.get_clazz());
         classes.push_back(a3.get_clazz());
         auto ctor = cls.lookup_constructor(classes);
-        return jvm::new_object(cls.native(), ctor.id(), a1.native_object(), a2.native_object(), a3.native_object());
+        return jvm::new_object(cls.native(), ctor.id(), a1.native(), a2.native(), a3.native());
     }
 
     // Creates a new object (non-primitive) array
     object create_array(const char* class_name, size_t size, object initial)
     {
-        auto cls = jvm::find_class(class_name);
-        return object(jvm::new_object_array(cls, size, initial.native_object()));
+        clazz cls(class_name);
+        return object(jvm::new_object_array(cls.native(), size, initial.native()));
     }
 
 }

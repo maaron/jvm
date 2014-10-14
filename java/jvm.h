@@ -6,8 +6,8 @@
 #include "jni.h"
 
 #include "java\type_traits.h"
-#include "java\exception.h"
 #include <vector>
+#include <list>
 
 namespace java
 {
@@ -36,6 +36,13 @@ namespace java
     // around the functions exposed by the JNI.
     namespace jvm
     {
+        jclass define_class(const char* name, jbyte* data, jsize size);
+
+#ifdef DEBUG_REFS
+        extern std::list<jobject> _refs;
+#endif
+        void delete_local_ref(jobject obj);
+
         jfieldID get_field_id(jclass cls, const char* name, const char* sig);
 
         jfieldID get_static_field_id(jclass cls, const char* name, const char* sig);
@@ -114,7 +121,7 @@ namespace java
             auto env = internal::get_thread_local_vm()->env;
             va_list args;
             va_start(args, method);
-            auto ret = type_traits<jtype>::call_static_method(env, cls, method, args);
+            auto ret = type_traits<jtype>::call_static_methodv(env, cls, method, args);
             if (env->ExceptionOccurred()) throw exception(env->ExceptionOccurred());
             va_end(args);
             return ret;
@@ -123,12 +130,23 @@ namespace java
         void call_static_method<void>(jclass cls, jmethodID method, ...);
 
         template <typename jtype>
+        jtype call_static_methodv(jclass cls, jmethodID method, va_list args)
+        {
+            auto env = internal::get_thread_local_vm()->env;
+            auto ret = type_traits<jtype>::call_static_methodv(env, cls, method, args);
+            if (env->ExceptionOccurred()) throw exception(env->ExceptionOccurred());
+            return ret;
+        }
+        template <>
+        void call_static_methodv<void>(jclass cls, jmethodID method, va_list args);
+
+        template <typename jtype>
         jtype call_method(jobject obj, jmethodID method, ...)
         {
             auto env = internal::get_thread_local_vm()->env;
             va_list args;
             va_start(args, method);
-            auto ret = type_traits<jtype>::call_method(env, obj, method, args);
+            auto ret = type_traits<jtype>::call_methodv(env, obj, method, args);
             if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
             va_end(args);
             return ret;
@@ -136,9 +154,51 @@ namespace java
         template <>
         void call_method<void>(jobject obj, jmethodID method, ...);
 
+        template <typename jtype>
+        jtype call_methodv(jobject obj, jmethodID method, va_list args)
+        {
+            auto env = internal::get_thread_local_vm()->env;
+            auto ret = type_traits<jtype>::call_methodv(env, obj, method, args);
+            if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
+            return ret;
+        }
+        template <>
+        void call_methodv<void>(jobject obj, jmethodID method, va_list args);
+
         // This function converts a Java jstring into a std::string
         std::string jstring_str(jstring jstr);
+
     }
+
+    template <typename jobject_t>
+    class local_ref
+    {
+        typedef jobject_t pointer_type;
+        typedef std::shared_ptr<_jobject> shared_ptr_type;
+
+        shared_ptr_type _ref;
+
+    public:
+        template <typename t>
+        local_ref(const local_ref<t>& other)
+        {
+            _ref = other.ref();
+        }
+
+        shared_ptr_type ref() const { return _ref; }
+
+        local_ref() {}
+
+        local_ref(jobject native) : _ref((pointer_type)native, jvm::delete_local_ref) {}
+
+        template <typename rhs_jobject_t>
+        bool operator== (const local_ref<rhs_jobject_t>& rhs) const { return static_cast<jobject>(_ref.get()) == static_cast<jobject>(rhs._ref.get()); }
+
+        template <typename rhs_jobject_t>
+        bool operator!= (const local_ref<rhs_jobject_t>& rhs) const { return static_cast<jobject>(_ref.get()) != static_cast<jobject>(rhs._ref.get()); }
+
+        pointer_type get() const { return (pointer_type)_ref.get(); }
+    };
 
     enum vm_version
     {

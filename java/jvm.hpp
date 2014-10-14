@@ -69,6 +69,25 @@ namespace java
 
     namespace jvm
     {
+        jclass define_class(const char* name, jobject loader, jbyte* data, jsize size)
+        {
+            auto env = internal::get_thread_local_vm()->env;
+            jclass ret = env->DefineClass(name, loader, data, size);
+            if (env->ExceptionOccurred()) throw exception(env->ExceptionOccurred());
+            return ret;
+        }
+
+#ifdef DEBUG_REFS
+        std::list<jobject> _refs;
+#endif
+        void delete_local_ref(jobject obj)
+        {
+            auto env = internal::get_thread_local_vm()->env;
+            env->DeleteLocalRef(obj);
+#ifdef DEBUG_REFS
+            _refs.remove(obj);
+#endif
+        }
 
         template <>
         void call_static_method<void>(jclass cls, jmethodID method, ...)
@@ -76,9 +95,17 @@ namespace java
             auto env = internal::get_thread_local_vm()->env;
             va_list args;
             va_start(args, method);
-            type_traits<void>::call_static_method(env, cls, method, args);
+            type_traits<void>::call_static_methodv(env, cls, method, args);
             if (env->ExceptionOccurred()) throw exception(env->ExceptionOccurred());
             va_end(args);
+        }
+        
+        template <>
+        void call_static_methodv<void>(jclass cls, jmethodID method, va_list args)
+        {
+            auto env = internal::get_thread_local_vm()->env;
+            type_traits<void>::call_static_methodv(env, cls, method, args);
+            if (env->ExceptionOccurred()) throw exception(env->ExceptionOccurred());
         }
 
         template <>
@@ -87,15 +114,26 @@ namespace java
             auto env = internal::get_thread_local_vm()->env;
             va_list args;
             va_start(args, method);
-            type_traits<void>::call_method(env, obj, method, args);
+            type_traits<void>::call_methodv(env, obj, method, args);
             if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
             va_end(args);
+        }
+
+        template <>
+        void call_methodv<void>(jobject obj, jmethodID method, va_list args)
+        {
+            auto env = internal::get_thread_local_vm()->env;
+            type_traits<void>::call_methodv(env, obj, method, args);
+            if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
         }
 
         jclass find_class(const char* name)
         {
             jclass cls = internal::get_thread_local_vm()->env->FindClass(name);
             if (cls == nullptr) throw std::exception("FindClass failed");
+#ifdef DEBUG_REFS
+            _refs.push_back(cls);
+#endif
             return cls;
         }
 
@@ -103,6 +141,9 @@ namespace java
         {
             jclass cls = internal::get_thread_local_vm()->env->GetObjectClass(obj);
             if (cls == nullptr) throw std::exception("GetObjectClass failed");
+#ifdef DEBUG_REFS
+            _refs.push_back(cls);
+#endif            
             return cls;
         }
 
@@ -129,6 +170,9 @@ namespace java
         {
             auto obj = internal::get_thread_local_vm()->env->GetObjectArrayElement(a, i);
             if (obj == nullptr) throw std::exception("GetObjectArrayElement failed");
+#ifdef DEBUG_REFS
+            _refs.push_back(obj);
+#endif
             return obj;
         }
 
@@ -143,6 +187,9 @@ namespace java
         {
             jstring jstr = internal::get_thread_local_vm()->env->NewStringUTF(data);
             if (jstr == nullptr) throw std::exception("NewStringUTF failed");
+#ifdef DEBUG_REFS
+            _refs.push_back(jstr);
+#endif
             return jstr;
         }
 
@@ -162,6 +209,9 @@ namespace java
         {
             jobject obj = internal::get_thread_local_vm()->env->AllocObject(cls);
             if (obj == nullptr) throw std::exception("AllocObject failed");
+#ifdef DEBUG_REFS
+            _refs.push_back(obj);
+#endif
             return obj;
         }
 
@@ -173,6 +223,9 @@ namespace java
             auto obj = env->NewObjectV(cls, ctor, args);
             va_end(args);
             if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
+#ifdef DEBUG_REFS
+            _refs.push_back(obj);
+#endif
             return obj;
         }
 
@@ -181,6 +234,9 @@ namespace java
             auto env = internal::get_thread_local_vm()->env;
             auto ret = env->NewObjectArray(length, cls, initial);
             if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
+#ifdef DEBUG_REFS
+            _refs.push_back(ret);
+#endif
             return ret;
         }
 
@@ -200,6 +256,9 @@ namespace java
         {
             auto method = internal::get_thread_local_vm()->env->ToReflectedMethod(cls, id, is_static);
             if (method == nullptr) throw std::exception("ToReflectedMethod failed");
+#ifdef DEBUG_REFS
+            _refs.push_back(method);
+#endif
             return method;
         }
 

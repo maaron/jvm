@@ -3,6 +3,7 @@
 #include "java.h"
 #include "java\method.h"
 #include "java\object.h"
+#include <memory>
 
 namespace java
 {
@@ -14,9 +15,14 @@ namespace java
     // with C++ class keyword.
     class clazz
     {
-        jclass _class;
+        local_ref<jclass> _ref;
 
     public:
+        // Returns a clazz object that refers to a the Java class of a null 
+        // pointer (there is none, so internally is just a clazz object with 
+        // jclass value that is 0.
+        clazz();
+
         // This constructor looks up a Java class given it's name.  The 
         // format of the name is 
         // "namespace1/namespace2/..../namespaceN/class_name", e.g., 
@@ -24,14 +30,16 @@ namespace java
         // e.g., java.util.ArrayList<E> is just "java/util/ArrayList".  This 
         // is because the JVM doesn't have any notion of generics- it is only 
         // known at the compiler level.
-        clazz(const char* name)
-        {
-            _class = jvm::find_class(name);
-        }
+        clazz(const char* name);
 
-        clazz(jclass cls) : _class(cls) {}
+        // Returns a clazz object that corresponds to the specified object.  
+        // The object should be an instance of a java.lang.Class object.
+        clazz(object);
 
-        jclass native() const { return _class; }
+        clazz(jclass cls) : _ref(cls) {}
+
+        local_ref<jclass> ref() const { return _ref; }
+        jclass native() const { return _ref.get(); }
 
         std::string name();
 
