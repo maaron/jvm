@@ -1,9 +1,6 @@
 #pragma once
 
-#include "java.h"
-#include "java\method.h"
-#include "java\object.h"
-#include <memory>
+#include "jvm.h"
 
 namespace java
 {

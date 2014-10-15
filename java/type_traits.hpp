@@ -1,5 +1,5 @@
 
-#include "java\type_traits.h"
+#include "type_traits.h"
 
 using namespace java::jni;
 

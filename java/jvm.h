@@ -3,9 +3,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-#include "jni.h"
-
-#include "java\type_traits.h"
+#include "type_traits.h"
+#include <jni.h>
 #include <vector>
 
 #ifdef DEBUG_REFS
@@ -40,6 +39,7 @@ namespace java
     // for further information.
     namespace jni
     {
+
         jclass define_class(const char* name, jbyte* data, jsize size);
 
 #ifdef DEBUG_REFS
@@ -317,7 +317,8 @@ namespace java
         }
 
         // This constructor can be used by Java extension libraries written 
-        // in C++.  
+        // in C++.  The env parameter must be a valid JNIEnv pointer.  The 
+        // destructor for this class will not destroy the JVM in this case.
         vm(JNIEnv* env) : _is_owner(false)
         {
             if (env->GetJavaVM(&_jvm) != 0)
