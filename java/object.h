@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 namespace java
 {
     class method_list;
@@ -30,6 +32,7 @@ namespace java
     protected:
         value_type _type;
         jvalue _value;
+        local_ref<jobject> _ref;
 
     public:
         // This class is used for updating elements in a Java primitive (int, 
@@ -42,14 +45,14 @@ namespace java
         // order to tell the JNI whether to commit changes.
         class array_element
         {
-            jarray _array;
+            local_ref<jarray> _ref;
             void* _ptr;
             bool _modified;
             value_type _type;
             size_t _index;
 
         public:
-            array_element(jobject arr, size_t index);
+            array_element(object arr, size_t index);
 
             ~array_element();
 
@@ -68,7 +71,7 @@ namespace java
             _value.l = nullptr;
         }
         object(jobject native) 
-            : _type(java_object)
+            : _type(java_object), _ref(native)
         {
             _value.l = native;
         }
@@ -178,11 +181,10 @@ namespace java
             return _value.d;
         }
 
-        // Returns the JVM native jclass associated with this object.
-        jclass native_class();
-
+        local_ref<jobject> ref() { return _ref; }
+        
         // Returns the JVM native jobject associated with this object.
-        jobject native_object() const { return _value.l; }
+        jobject native() const { return _value.l; }
 
         // Returns true if the object is a null reference.  Note that this 
         // will also return true for Java integers that happen to be zero.

@@ -5,7 +5,7 @@
 namespace java
 {
 
-    namespace jvm
+    namespace jni
     {
 
         template <typename jtype>
@@ -16,8 +16,8 @@ namespace java
         {
             typedef void jni_type;
 
-            static jni_type call_method(JNIEnv* env, jobject obj, jmethodID id, va_list args);
-            static jni_type call_static_method(JNIEnv* env, jclass cls, jmethodID id, va_list args);
+            static jni_type call_methodv(JNIEnv* env, jobject obj, jmethodID id, va_list args);
+            static jni_type call_static_methodv(JNIEnv* env, jclass cls, jmethodID id, va_list args);
         };
 
         template <>
@@ -26,8 +26,8 @@ namespace java
             typedef jobject jni_type;
             typedef jobjectArray array_type;
 
-            static jni_type call_method(JNIEnv* env, jobject obj, jmethodID id, va_list args);
-            static jni_type call_static_method(JNIEnv* env, jclass cls, jmethodID id, va_list args);
+            static jni_type call_methodv(JNIEnv* env, jobject obj, jmethodID id, va_list args);
+            static jni_type call_static_methodv(JNIEnv* env, jclass cls, jmethodID id, va_list args);
         };
 
 #define decl_primitive_type_traits(jtype) \
@@ -36,8 +36,8 @@ namespace java
         { \
             typedef jtype jni_type; \
             typedef jtype##Array array_type; \
-            static jni_type call_method(JNIEnv* env, jobject obj, jmethodID id, va_list args); \
-            static jni_type call_static_method(JNIEnv* env, jclass cls, jmethodID id, va_list args); \
+            static jni_type call_methodv(JNIEnv* env, jobject obj, jmethodID id, va_list args); \
+            static jni_type call_static_methodv(JNIEnv* env, jclass cls, jmethodID id, va_list args); \
             static jni_type* get_array_elements(JNIEnv* env, array_type arr, jboolean* copy); \
             static void release_array_elements(JNIEnv* env, array_type arr, jni_type* ptr, jint mode); \
             static jtype get_field(JNIEnv* env, jobject obj, jfieldID id); \
