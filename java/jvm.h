@@ -7,6 +7,7 @@
 
 #include "java\type_traits.h"
 #include <vector>
+#include <memory>
 
 #ifdef DEBUG_REFS
 #include <list>
@@ -207,23 +208,30 @@ namespace java
         pointer_type get() const { return (pointer_type)_ref.get(); }
     };
 
-    enum vm_version
+    enum jni_version
     {
 #ifdef JNI_VERSION_1_1
         jni_1_1 = JNI_VERSION_1_1,
+#define _JNI_LATEST JNI_VERSION_1_1
 #endif
 #ifdef JNI_VERSION_1_2
         jni_1_2 = JNI_VERSION_1_2,
+#undef _JNI_LATEST
+#define _JNI_LATEST JNI_VERSION_1_2
 #endif
 #ifdef JNI_VERSION_1_4
         jni_1_4 = JNI_VERSION_1_4,
+#undef _JNI_LATEST
+#define _JNI_LATEST JNI_VERSION_1_4
 #endif
 #ifdef JNI_VERSION_1_6
         jni_1_6 = JNI_VERSION_1_6,
+#undef _JNI_LATEST
+#define _JNI_LATEST JNI_VERSION_1_6
 #endif
-        // Don't use this- it is just here to make the C++ syntax work.
-        unknown = 0
+        jni_default_version = _JNI_LATEST
     };
+#undef _JNI_LATEST
 
     // This class is used to encapsulate the parameters that are passed to 
     // the JVM on start-up.
@@ -231,11 +239,11 @@ namespace java
     {
         std::vector<std::string> _opts;
         bool _ignore;
-        vm_version _version;
+        jni_version _version;
 
     public:
         vm_args()
-            : _ignore(false), _version(jni_1_6)
+            : _ignore(false), _version(jni_default_version)
         {
         }
 
@@ -247,8 +255,8 @@ namespace java
         void ignore_unrecognized(bool ignore) { _ignore = ignore; }
         bool ignore_unrecognized() const { return _ignore; }
 
-        void version(vm_version v) { _version = v; }
-        vm_version version() const { return _version; }
+        void version(jni_version v) { _version = v; }
+        jni_version version() const { return _version; }
 
         const std::vector<std::string>& options() const { return _opts; }
     };
