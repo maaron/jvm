@@ -1,7 +1,7 @@
 
-#include "method.h"
-#include "clazz.h"
-#include "jvm.h"
+#include "java\method.h"
+#include "java\clazz.h"
+#include "java\jvm.h"
 
 using namespace java;
 

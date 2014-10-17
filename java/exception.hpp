@@ -1,39 +1,42 @@
 
-#include "exception.h"
-#include "jvm.h"
-#include "object.h"
+#include "java\exception.h"
+#include "java\jvm.h"
+#include "java\object.h"
 
-using namespace java;
-
-exception::exception(jthrowable t)
-    : _t(t), _msg(""), object(t)
+namespace java
 {
-    suspend();
-    _msg = call("getMessage");
-    resume();
-}
 
-const char* exception::what() const
-{
-    return _msg.c_str();
-}
+    exception::exception(jthrowable t)
+        : _t(t), _msg(""), object(t)
+    {
+        suspend();
+        _msg = call("getMessage");
+        resume();
+    }
 
-void exception::suspend()
-{
-    internal::get_thread_local_vm()->env->ExceptionClear();
-}
+    const char* exception::what() const
+    {
+        return _msg.c_str();
+    }
 
-void exception::resume()
-{
-    internal::get_thread_local_vm()->env->Throw(_t);
-}
+    void exception::suspend()
+    {
+        internal::get_env()->ExceptionClear();
+    }
 
-void exception::print()
-{
-    suspend();
-    object t(_t);
+    void exception::resume()
+    {
+        internal::get_env()->Throw(_t);
+    }
 
-    std::string ret;
-    t.call("printStackTrace");
-    resume();
+    void exception::print()
+    {
+        suspend();
+        object t(_t);
+
+        std::string ret;
+        t.call("printStackTrace");
+        resume();
+    }
+
 }

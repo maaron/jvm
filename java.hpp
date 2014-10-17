@@ -1,7 +1,5 @@
 #pragma once
 
-#include <jni.h>
-
 #include "java\type_traits.hpp"
 #include "java\jvm.hpp"
 #include "java\clazz.hpp"

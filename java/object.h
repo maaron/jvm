@@ -1,6 +1,6 @@
 #pragma once
 
-#include <jni.h>
+#include <memory>
 
 namespace java
 {
@@ -60,6 +60,12 @@ namespace java
 
             operator object();
         };
+
+        // Turns the local object reference into a global reference, 
+        // allowing it to be used across different threads or native method 
+        // contexts.  This does nothing if the java::object does not contain
+        // a Java reference type (i.e., no-op for primitive types).
+        void make_global();
 
         // This returns an object that serves as a "null reference" in Java
         static object null() { return object((jobject)nullptr); }

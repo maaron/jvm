@@ -3,8 +3,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-#include "type_traits.h"
-#include <jni.h>
+#include "jni.h"
+
+#include "java\type_traits.h"
 #include <vector>
 
 #ifdef DEBUG_REFS
@@ -15,23 +16,29 @@ namespace java
 {
     namespace internal
     {
-        struct jvm_info { JNIEnv* env; };
-
-        // This function allocates TLS in order store a single Java VM
-        // instance.  This allows a thread to associate a VM with itself so
-        // that further calls to the java objects in this namespace can
-        // interact with the VM without passing around a pointer to it.
-        // However, this has the limitation that a thread can only create a
-        // single VM.  This could be expanded by allocating a vector of VM's
-        // instead, and providing a function to switch the thread's "current"
-        // VM.
+        // This function returns the TLS index used by the library to store 
+        // the thread-local JNIEnv pointer, allocating the index if 
+        // neccessary.
         DWORD get_tls_index();
 
+        // These function get/set the TLS value stored at the index.
+        LPVOID get_tls_value();
+        void set_tls_value(LPVOID);
+
+        // This function can be used to free the TLS index, although the
+        // library does not currently call it.  It should be called whenever
+        // the process is exiting, such as during DLL_PROCESS_DETACH if used in
+        // a DLL.  But there doesn't seem to be a reliable way for the library
+        // to do this without forcing dynamic linking or linking a stub DLL to
+        // receive detach indication.  However, since the process is exiting,
+        // it's probably not a big deal not to free the index anyway.
         void free_tls_index();
 
-        jvm_info* get_thread_local_vm();
+        // This function returns a non-null pointer to the JNIEnv associated 
+        // with the JVM the current thread is attached to.  Throws an 
+        // exception if the thread is not attached.
+        JNIEnv* get_env();
 
-        void set_thread_local_vm(jvm_info* info);
     }
 
     // The functions in this namespace are exception-throwing wrappers 
@@ -46,6 +53,7 @@ namespace java
         extern std::list<jobject> _refs;
 #endif
         void delete_local_ref(jobject obj);
+        void delete_global_ref(jobject obj);
 
         jfieldID get_field_id(jclass cls, const char* name, const char* sig);
 
@@ -54,7 +62,7 @@ namespace java
         template <typename jtype>
         jtype get_field(jobject obj, jfieldID id)
         {
-            auto env = internal::get_thread_local_vm()->env;
+            auto env = internal::get_env();
             auto ret = type_traits<jtype>::get_field(env, obj, id);
             if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
             return ret;
@@ -63,7 +71,7 @@ namespace java
         template <typename jtype>
         jtype get_static_field(jobject obj, jfieldID id)
         {
-            auto env = internal::get_thread_local_vm()->env;
+            auto env = internal::get_env();
             auto ret = type_traits<jtype>::get_static_field(env, obj, id);
             if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
             return ret;
@@ -82,7 +90,7 @@ namespace java
         template <typename jtype>
         jtype* get_array_elements(typename type_traits<jtype>::array_type arr, jboolean* isCopy)
         {
-            auto env = internal::get_thread_local_vm()->env;
+            auto env = internal::get_env();
             auto ptr = type_traits<jtype>::get_array_elements(env, arr, nullptr);
             if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
             return ptr;
@@ -91,7 +99,7 @@ namespace java
         template <typename jtype>
         void release_array_elements(typename type_traits<jtype>::array_type arr, jtype* ptr, int mode)
         {
-            auto env = internal::get_thread_local_vm()->env;
+            auto env = internal::get_env();
             auto fptr = type_traits<jtype>::release_array_elements;
             type_traits<jtype>::release_array_elements(env, arr, ptr, mode);
             if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
@@ -122,7 +130,7 @@ namespace java
         template <typename jtype>
         jtype call_static_method(jclass cls, jmethodID method, ...)
         {
-            auto env = internal::get_thread_local_vm()->env;
+            auto env = internal::get_env();
             va_list args;
             va_start(args, method);
             auto ret = type_traits<jtype>::call_static_methodv(env, cls, method, args);
@@ -136,7 +144,7 @@ namespace java
         template <typename jtype>
         jtype call_static_methodv(jclass cls, jmethodID method, va_list args)
         {
-            auto env = internal::get_thread_local_vm()->env;
+            auto env = internal::get_env();
             auto ret = type_traits<jtype>::call_static_methodv(env, cls, method, args);
             if (env->ExceptionOccurred()) throw exception(env->ExceptionOccurred());
             return ret;
@@ -147,7 +155,7 @@ namespace java
         template <typename jtype>
         jtype call_method(jobject obj, jmethodID method, ...)
         {
-            auto env = internal::get_thread_local_vm()->env;
+            auto env = internal::get_env();
             va_list args;
             va_start(args, method);
             auto ret = type_traits<jtype>::call_methodv(env, obj, method, args);
@@ -161,7 +169,7 @@ namespace java
         template <typename jtype>
         jtype call_methodv(jobject obj, jmethodID method, va_list args)
         {
-            auto env = internal::get_thread_local_vm()->env;
+            auto env = internal::get_env();
             auto ret = type_traits<jtype>::call_methodv(env, obj, method, args);
             if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
             return ret;
@@ -197,6 +205,12 @@ namespace java
         local_ref() {}
 
         local_ref(jobject native) : _ref((pointer_type)native, jni::delete_local_ref) {}
+
+        void make_global()
+        {
+            auto global = internal::get_env()->NewGlobalRef(_ref.get());
+            _ref.reset(global, jni::delete_global_ref);
+        }
 
         template <typename rhs_jobject_t>
         bool operator== (const local_ref<rhs_jobject_t>& rhs) const { return static_cast<jobject>(_ref.get()) == static_cast<jobject>(rhs._ref.get()); }
@@ -253,13 +267,25 @@ namespace java
         const std::vector<std::string>& options() const { return _opts; }
     };
 
+    // Function pointers into the JVM.dll to be bound ar runtime
+    typedef decltype(&JNI_CreateJavaVM) JNI_CreateJavaVM_type;
+    extern JNI_CreateJavaVM_type p_JNI_CreateJavaVM;
+
+    // Loads the jvm.dll library using the specified path (including the dll 
+    // file name).  This is useful in cases where it is desireable to choose 
+    // a specific version of the JNI library at runtime.  If this function 
+    // is not called, the java::vm class looks for the library using the 
+    // platform's normal search paths (i.e., it calls LoadLibrary on 
+    // Windows).
+    void load_jvmdll(const char* path);
+
     // This class is used to initialize a JVM instance and associate it with 
     // the current thread.  Upon desctruction of this object, the JVM wil 
     // also be shutdown.  Thus, the object must stay alive for the duration 
     // of any other function calls (including constructors) from the java::* 
     // namespace, even though the user need not pass references or pointers 
     // to this object to any of those functions.  Internally, a pointer to the
-    // JVM (JavaVM*) is maintained in thread-local storage.  This implies that
+    // JVM (JNIEnv*) is maintained in thread-local storage.  This implies that
     // the functions in this namespace can also be called from the same thread
     // that initialized the JVM via this class (unless the caller uses the 
     // attach_thread function or vm_thread class to attach additional 
@@ -271,6 +297,8 @@ namespace java
 
         void init(const vm_args& args)
         {
+            if (p_JNI_CreateJavaVM == nullptr) load_jvmdll("jvm.dll");
+
             JavaVMInitArgs internal_args;
 
             internal_args.ignoreUnrecognized  = args.ignore_unrecognized();
@@ -290,15 +318,14 @@ namespace java
             internal_args.nOptions = opts.size();
             internal_args.options = internal_opts.data();
 
-            auto info = new internal::jvm_info();
-
-            jint status = JNI_CreateJavaVM(&_jvm, (void**)&info->env, &internal_args);
+            JNIEnv* env;
+            jint status = p_JNI_CreateJavaVM(&_jvm, (void**)&env, &internal_args);
             if (status != JNI_OK)
             {
                 throw std::exception("JNI_CreateJavaVM failed");
             }
 
-            internal::set_thread_local_vm(info);
+            internal::set_tls_value(env);
         }
 
     public:
@@ -324,23 +351,14 @@ namespace java
             if (env->GetJavaVM(&_jvm) != 0)
                 throw std::exception("GetJavaVM failed");
 
-            auto info = new internal::jvm_info();
-            info->env = env;
-            internal::set_thread_local_vm(info);
+            internal::set_tls_value(env);
         }
 
         // Destroys the object and the JVM instance along with it, unless 
         // the vm was constructed using a pre-existing JNIEnv pointer.
         ~vm()
         {
-            auto info = internal::get_thread_local_vm();
-            if (info != nullptr)
-            {
-                if (_is_owner) _jvm->DestroyJavaVM();
-                delete info;
-            }
-
-            internal::free_tls_index();
+            if (_is_owner) _jvm->DestroyJavaVM();
         }
 
         // Attaches the current thread to this JVM.  Make sure to call 
@@ -348,23 +366,32 @@ namespace java
         // does not currently support JavaVMAttachArgs.
         void attach_thread()
         {
-            auto info = new internal::jvm_info();
+            if (internal::get_tls_value() == nullptr)
+            {
+                JavaVMAttachArgs args;
+                args.version = jni_1_6;
+                args.name = nullptr;
+                args.group = nullptr;
 
-            if (_jvm->AttachCurrentThread((void**)&info->env, nullptr) != JNI_OK)
-                throw std::exception("AttachCurrentThread failed");
+                JNIEnv* env;
+                if (_jvm->AttachCurrentThread((void**)&env, &args) != JNI_OK)
+                    throw std::exception("AttachCurrentThread failed");
 
-            internal::set_thread_local_vm(info);
+                internal::set_tls_value(env);
+            }
         }
 
         // Detaches the current thread from this JVM, and frees thread-local 
         // memory.
         void detach_thread()
         {
-            if (_jvm->DetachCurrentThread() != JNI_OK)
-                throw std::exception("DetachCurrentThread failed");
+            if (internal::get_tls_value() != nullptr)
+            {
+                if (_jvm->DetachCurrentThread() != JNI_OK)
+                    throw std::exception("DetachCurrentThread failed");
 
-            auto info = internal::get_thread_local_vm();
-            if (info != nullptr) delete info;
+                internal::set_tls_value(nullptr);
+            }
         }
     };
 

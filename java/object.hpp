@@ -1,7 +1,7 @@
 
-#include "object.h"
-#include "jvm.h"
-#include "clazz.h"
+#include "java\object.h"
+#include "java\jvm.h"
+#include "java\clazz.h"
 
 using namespace java;
 
@@ -17,6 +17,15 @@ object::object(const clazz& cls)
 {
     _ref = cls.ref();
     _value.l = _ref.get();
+}
+
+void object::make_global()
+{
+    if (_type == java_object)
+    {
+        _ref.make_global();
+        _value.l = _ref.get();
+    }
 }
 
 clazz object::get_clazz()

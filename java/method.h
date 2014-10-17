@@ -1,5 +1,6 @@
 #pragma once
 
+#include "jvm.h"
 #include <vector>
 
 namespace java
