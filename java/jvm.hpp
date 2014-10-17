@@ -1,5 +1,5 @@
 
-#include "java\jvm.h"
+#include "jvm.h"
 
 namespace java
 {
