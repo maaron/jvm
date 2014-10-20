@@ -93,7 +93,7 @@ namespace java
         {
             auto env = internal::get_env();
             auto ptr = type_traits<jtype>::get_array_elements(env, arr, nullptr);
-            if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
+            if (ptr == nullptr) throw std::exception("Get<type>ArrayElements failed");
             return ptr;
         }
 
@@ -177,6 +177,15 @@ namespace java
         }
         template <>
         void call_methodv<void>(jobject obj, jmethodID method, va_list args);
+
+        template <typename jtype>
+        typename type_traits<jtype>::array_type new_array(size_t i)
+        {
+            auto env = internal::get_env();
+            auto ret = type_traits<jtype>::new_array(env, i);
+            if (env->ExceptionCheck()) throw exception(env->ExceptionOccurred());
+            return ret;
+        }
 
         // This function converts a Java jstring into a std::string
         std::string jstring_str(jstring jstr);

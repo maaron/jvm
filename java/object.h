@@ -4,24 +4,10 @@
 
 namespace java
 {
+    using namespace jni;
     class method_list;
     class clazz;
-
-    // Enum of the various native types used by JNI.  java_void is used to 
-    // represent the "return value" for Java methods that return void.
-    enum value_type
-    { 
-        java_boolean, 
-        java_byte, 
-        java_char,
-        java_short,
-        java_int,
-        java_long,
-        java_float,
-        java_double,
-        java_object,
-        java_void
-    };
+    class array_element;
 
     // Generic container for any Java object.  This class is the fundamental 
     // type of the java::* namespace, and serves as a variant type that can 
@@ -35,31 +21,7 @@ namespace java
         local_ref<jobject> _ref;
 
     public:
-        // This class is used for updating elements in a Java primitive (int, 
-        // short, etc., non-object types) array.  When accessing primitive 
-        // arrays using JNI, the caller gets a pointer to memory that may or may 
-        // not have been copied.  Thus, the JNI provides a function to free this 
-        // memory (if applicable, a no-op otherwise).  The lifetime of objects 
-        // of this class control when this release function is called.  
-        // Furthermore, this class tracks whether the element is modified, in 
-        // order to tell the JNI whether to commit changes.
-        class array_element
-        {
-            local_ref<jarray> _ref;
-            void* _ptr;
-            bool _modified;
-            value_type _type;
-            size_t _index;
-
-        public:
-            array_element(object arr, size_t index);
-
-            ~array_element();
-
-            array_element& operator= (const object& rhs);
-
-            operator object();
-        };
+        
 
         // Turns the local object reference into a global reference, 
         // allowing it to be used across different threads or native method 
@@ -71,57 +33,18 @@ namespace java
         static object null() { return object((jobject)nullptr); }
 
         // These constructors create new Java objects of the various types.
-        object()
-            : _type(java_void)
-        {
-            _value.l = nullptr;
-        }
-        object(jobject native) 
-            : _type(java_object), _ref(native)
-        {
-            _value.l = native;
-        }
-        object(jboolean native) 
-            : _type(java_boolean)
-        {
-            _value.z = native;
-        }
-        object(jbyte native) 
-            : _type(java_byte)
-        {
-            _value.b = native;
-        }
-        object(jchar native) 
-            : _type(java_char)
-        {
-            _value.c = native;
-        }
-        object(jdouble native) 
-            : _type(java_double)
-        {
-            _value.d = native;
-        }
-        object(jfloat native) 
-            : _type(java_float)
-        {
-            _value.f = native;
-        }
-        object(jint native) 
-            : _type(java_int)
-        {
-            _value.i = native;
-        }
-        object(jlong native) 
-            : _type(java_long)
-        {
-            _value.j = native;
-        }
-        object(jshort native) 
-            : _type(java_short)
-        {
-            _value.s = native;
-        }
+        object() : _type(void_value) { _value.l = nullptr; }
+        object(jobject native) : _type(jobject_value), _ref(native) { _value.l = native; }
+        object(jboolean native) : _type(jboolean_value) { _value.z = native; }
+        object(jbyte native) : _type(jbyte_value) { _value.b = native; }
+        object(jchar native) : _type(jchar_value) { _value.c = native; }
+        object(jdouble native) : _type(jdouble_value) { _value.d = native; }
+        object(jfloat native) : _type(jfloat_value) { _value.f = native; }
+        object(jint native) : _type(jint_value) { _value.i = native; }
+        object(jlong native) : _type(jlong_value) { _value.j = native; }
+        object(jshort native) : _type(jshort_value) { _value.s = native; }
 
+        // Returns the clazz object associated with the current object.
         clazz get_clazz();
         
         // This constructor is a convenience for passing strings to Java 
@@ -148,42 +71,42 @@ namespace java
 
         bool as_bool() const
         {
-            if (_type != java_boolean) throw std::exception("Java object is not a boolean");
+            if (_type != jboolean_value) throw std::exception("Java object is not a boolean");
             return _value.z == JNI_TRUE;
         }
         jbyte as_byte() const
         {
-            if (_type != java_byte) throw std::exception("Java object is not a byte");
+            if (_type != jbyte_value) throw std::exception("Java object is not a byte");
             return _value.b;
         }
         jchar as_char() const
         {
-            if (_type != java_char) throw std::exception("Java object is not a char");
+            if (_type != jchar_value) throw std::exception("Java object is not a char");
             return _value.c;
         }
         jshort as_short() const
         {
-            if (_type != java_short) throw std::exception("Java object is not a short");
+            if (_type != jshort_value) throw std::exception("Java object is not a short");
             return _value.s;
         }
         jint as_int() const
         {
-            if (_type != java_int) throw std::exception("Java object is not a int");
+            if (_type != jint_value) throw std::exception("Java object is not a int");
             return _value.i;
         }
         jlong as_long() const
         {
-            if (_type != java_long) throw std::exception("Java object is not a long");
+            if (_type != jlong_value) throw std::exception("Java object is not a long");
             return _value.j;
         }
         jfloat as_float() const
         {
-            if (_type != java_float) throw std::exception("Java object is not a float");
+            if (_type != jfloat_value) throw std::exception("Java object is not a float");
             return _value.f;
         }
         jdouble as_double() const
         {
-            if (_type != java_double) throw std::exception("Java object is not a double");
+            if (_type != jdouble_value) throw std::exception("Java object is not a double");
             return _value.d;
         }
 
@@ -215,6 +138,33 @@ namespace java
         object call(const char* method_name, object a1, object a2, object a3);
     };
 
+    // This class is used for updating elements in a Java primitive (int, 
+    // short, etc., non-object types) array.  When accessing primitive 
+    // arrays using JNI, the caller gets a pointer to memory that may or may 
+    // not have been copied.  Thus, the JNI provides a function to free this 
+    // memory (if applicable, a no-op otherwise).  The lifetime of objects 
+    // of this class control when this release function is called.  
+    // Furthermore, this class tracks whether the element is modified, in 
+    // order to tell the JNI whether to commit changes.
+    class array_element : public object
+    {
+        local_ref<jarray> _ref;
+        size_t _index;
+
+    public:
+        array_element(object obj, size_t index)
+            : object(),
+            _ref(obj.ref()),
+            _index(index) {}
+
+        ~array_element();
+
+        // Modifies the element at the current index
+        array_element& operator= (const object& rhs);
+
+        operator object();
+    };
+
     // Creates a new object in the VM by calling it's parameterless c-tor.  
     // Effectively does the same as "new class_name()" in Java.
     object create(const char* class_name);
@@ -223,4 +173,12 @@ namespace java
 
     // Creates a new object (non-primitive) array
     object create_array(const char* class_name, size_t size, object initial);
+
+    // Creates a new primitive array.  The type parameter specifies the JNI 
+    // type- jint, jboolean, etc.
+    template <typename jtype>
+    object create_array(size_t size)
+    {
+        return object(jni::new_array<jtype>(size));
+    }
 }
