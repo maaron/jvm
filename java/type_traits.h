@@ -30,7 +30,7 @@ namespace java
         struct type_traits<void>
         {
             typedef void jni_type;
-            const value_type value = void_value;
+            static const value_type value = void_value;
 
             static jni_type call_methodv(JNIEnv* env, jobject obj, jmethodID id, va_list args);
             static jni_type call_static_methodv(JNIEnv* env, jclass cls, jmethodID id, va_list args);
@@ -41,7 +41,7 @@ namespace java
         {
             typedef jobject jni_type;
             typedef jobjectArray array_type;
-            const value_type value = jobject_value;
+            static const value_type value = jobject_value;
 
             static jni_type call_methodv(JNIEnv* env, jobject obj, jmethodID id, va_list args);
             static jni_type call_static_methodv(JNIEnv* env, jclass cls, jmethodID id, va_list args);
@@ -53,7 +53,7 @@ namespace java
         { \
             typedef jtype jni_type; \
             typedef jtype##Array array_type; \
-            const value_type value = jtype##_value; \
+            static const value_type value = jtype##_value; \
             static jni_type call_methodv(JNIEnv* env, jobject obj, jmethodID id, va_list args); \
             static jni_type call_static_methodv(JNIEnv* env, jclass cls, jmethodID id, va_list args); \
             static jni_type* get_array_elements(JNIEnv* env, array_type arr, jboolean* copy); \

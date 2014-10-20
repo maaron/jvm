@@ -20,9 +20,18 @@ namespace java
         jvalue _value;
         local_ref<jobject> _ref;
 
-    public:
-        
+    private:
+        template <typename jtype>
+        jtype get_element(size_t index)
+        {
+            auto jobj = (typename jni::type_traits<jtype>::array_type)_ref.get();
+            auto ptr = jni::get_array_elements<jtype>(jobj, nullptr);
+            auto ret = ptr[index];
+            jni::release_array_elements<jtype>(jobj, ptr, JNI_ABORT);
+            return ret;
+        }
 
+    public:
         // Turns the local object reference into a global reference, 
         // allowing it to be used across different threads or native method 
         // contexts.  This does nothing if the java::object does not contain
@@ -148,21 +157,32 @@ namespace java
     // order to tell the JNI whether to commit changes.
     class array_element : public object
     {
-        local_ref<jarray> _ref;
+        local_ref<jarray> _array;
         size_t _index;
 
-    public:
-        array_element(object obj, size_t index)
-            : object(),
-            _ref(obj.ref()),
-            _index(index) {}
+    private:
+        template <typename jtype>
+        void set(jtype elem)
+        {
+            auto jobj = (typename jni::type_traits<jtype>::array_type)_array.get();
+            auto ptr = jni::get_array_elements<jtype>(jobj, nullptr);
+            ptr[_index] = elem;
+            jni::release_array_elements<jtype>(jobj, ptr, JNI_COMMIT);
+        }
 
-        ~array_element();
+        template <>
+        void set<jobject>(jobject elem)
+        {
+            jni::set_object_array_element((jobjectArray)_array.get(), _index, elem);
+        }
+
+    public:
+        template <typename jtype>
+        array_element(object arr, jtype elem, size_t index)
+            : object(elem), _array(arr.ref()), _index(index) {}
 
         // Modifies the element at the current index
         array_element& operator= (const object& rhs);
-
-        operator object();
     };
 
     // Creates a new object in the VM by calling it's parameterless c-tor.  

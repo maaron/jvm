@@ -59,15 +59,15 @@ array_element object::operator[](size_t index)
 
     switch (class_name[1])
     {
-    case 'Z': return array_element(*this, jni::get_array_elements<jboolean>((jbooleanArray)_ref.get(), nullptr), index); break;
-    case 'B': return array_element(*this, jni::get_array_elements<jbyte>((jbyteArray)_ref.get(), nullptr), index); break;
-    case 'C': return array_element(*this, jni::get_array_elements<jchar>((jcharArray)_ref.get(), nullptr), index); break;
-    case 'L': return array_element(*this, index); break;
-    case 'D': return array_element(*this, jni::get_array_elements<jdouble>((jdoubleArray)_ref.get(), nullptr), index); break;
-    case 'F': return array_element(*this, jni::get_array_elements<jfloat>((jfloatArray)_ref.get(), nullptr), index); break;
-    case 'I': return array_element(*this, jni::get_array_elements<jint>((jintArray)_ref.get(), nullptr), index); break;
-    case 'J': return array_element(*this, jni::get_array_elements<jlong>((jlongArray)_ref.get(), nullptr), index); break;
-    case 'S': return array_element(*this, jni::get_array_elements<jshort>((jshortArray)_ref.get(), nullptr), index); break;
+    case 'Z': return array_element(*this, get_element<jboolean>(index), index); break;
+    case 'B': return array_element(*this, get_element<jbyte>(index), index); break;
+    case 'C': return array_element(*this, get_element<jchar>(index), index); break;
+    case 'L': return array_element(*this, jni::get_object_array_element((jobjectArray)_ref.get(), index), index); break;
+    case 'D': return array_element(*this, get_element<jdouble>(index), index); break;
+    case 'F': return array_element(*this, get_element<jfloat>(index), index); break;
+    case 'I': return array_element(*this, get_element<jint>(index), index); break;
+    case 'J': return array_element(*this, get_element<jlong>(index), index); break;
+    case 'S': return array_element(*this, get_element<jshort>(index), index); break;
     default:
         throw std::exception("Unsupported Java type");
     }
@@ -164,44 +164,19 @@ object object::call(const char* method_name, object a1, object a2, object a3)
     return call_method(_value.l, m.return_type(), m.id(), a1.native(), a2.native(), a3.native());
 }
 
-array_element::~array_element()
-{
-}
-
-void array_element::releaser::operator() (void* p)
-{
-    int mode = commit ? JNI_COMMIT : JNI_ABORT;
-
-    switch (type)
-    {
-    case jboolean_value: jni::release_array_elements<jboolean>((jbooleanArray)_ref.get(), (jboolean*)_ptr, mode); break;
-    case jbyte_value: jni::release_array_elements<jbyte>((jbyteArray)_ref.get(), (jbyte*)_ptr, mode); break;
-    case jchar_value: jni::release_array_elements<jchar>((jcharArray)_ref.get(), (jchar*)_ptr, mode); break;
-    case jobject_value: break;
-    case jfloat_value: jni::release_array_elements<jfloat>((jfloatArray)_ref.get(), (jfloat*)_ptr, mode); break;
-    case jdouble_value: jni::release_array_elements<jdouble>((jdoubleArray)_ref.get(), (jdouble*)_ptr, mode); break;
-    case jint_value: jni::release_array_elements<jint>((jintArray)_ref.get(), (jint*)_ptr, mode); break;
-    case jlong_value: jni::release_array_elements<jlong>((jlongArray)_ref.get(), (jlong*)_ptr, mode); break;
-    case jshort_value: jni::release_array_elements<jshort>((jshortArray)_ref.get(), (jshort*)_ptr, mode); break;
-    default:
-        throw std::exception("Unsupported Java type");
-    }
-}
-
 array_element& array_element::operator= (const object& rhs)
 {
-    _modified = true;
     switch (_type)
     {
-    case jboolean_value: ((jboolean*)_ptr)[_index] = rhs.as_bool(); break;
-    case jbyte_value: ((jbyte*)_ptr)[_index] = rhs.as_byte(); break;
-    case jchar_value: ((jchar*)_ptr)[_index] = rhs.as_char(); break;
-    case jobject_value: jni::set_object_array_element((jobjectArray)_ref.get(), _index, rhs.native()); break;
-    case jfloat_value: ((jfloat*)_ptr)[_index] = rhs.as_float(); break;
-    case jdouble_value: ((jdouble*)_ptr)[_index] = rhs.as_double(); break;
-    case jint_value: ((jint*)_ptr)[_index] = rhs.as_int(); break;
-    case jlong_value: ((jlong*)_ptr)[_index] = rhs.as_long(); break;
-    case jshort_value: ((jshort*)_ptr)[_index] = rhs.as_short(); break;
+    case jboolean_value: set<jboolean>(rhs.as_bool()); break;
+    case jbyte_value: set(rhs.as_byte()); break;
+    case jchar_value: set(rhs.as_char()); break;
+    case jobject_value: set(rhs.native()); break;
+    case jfloat_value: set(rhs.as_float()); break;
+    case jdouble_value: set(rhs.as_double()); break;
+    case jint_value: set(rhs.as_int()); break;
+    case jlong_value: set(rhs.as_long()); break;
+    case jshort_value: set(rhs.as_short()); break;
     default:
         throw std::exception("Unsupported Java type");
     }
