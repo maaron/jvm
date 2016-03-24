@@ -1,5 +1,6 @@
 
-#include "java\jvm.h"
+#include "jvm.h"
+#include "exception.h"
 
 namespace java
 {
@@ -78,7 +79,7 @@ namespace java
         {
             auto env = internal::get_env();
             jclass ret = env->DefineClass(name, loader, data, size);
-            if (env->ExceptionOccurred()) throw exception(env->ExceptionOccurred());
+            if (env->ExceptionOccurred()) throw java::exception(env->ExceptionOccurred());
             return ret;
         }
 

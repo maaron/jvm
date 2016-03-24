@@ -9,13 +9,12 @@ namespace java
 {
     class method;
     class method_list;
-    class object;
 
     // Wrapper for a Java class object. "clazz" naming is to avoid conflict 
     // with C++ class keyword.
-    class clazz
+    class clazz : public object
     {
-        local_ref<jclass> _ref;
+        //local_ref<jclass> _ref;
 
     public:
         // Returns a clazz object that refers to a the Java class of a null 
@@ -36,10 +35,10 @@ namespace java
         // The object should be an instance of a java.lang.Class object.
         clazz(object);
 
-        clazz(jclass cls) : _ref(cls) {}
+		clazz(jclass cls);
 
         local_ref<jclass> ref() const { return _ref; }
-        jclass native() const { return _ref.get(); }
+        jclass native() const { return reinterpret_cast<jclass>(_ref.get()); }
 
         std::string name();
 

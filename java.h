@@ -1,6 +1,6 @@
 #pragma once
 
-#include "jni.h"
+#include <jni.h>
 
 #include "java\type_traits.h"
 #include "java\jvm.h"
