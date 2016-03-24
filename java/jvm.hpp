@@ -4,7 +4,6 @@
 
 namespace java
 {
-
     namespace internal
     {
         static DWORD tlsIndex = TLS_OUT_OF_INDEXES;
