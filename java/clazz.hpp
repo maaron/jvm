@@ -1,4 +1,4 @@
-#include "java\clazz.h"
+#include "clazz.h"
 
 #include <vector>
 #include <algorithm>
@@ -12,6 +12,11 @@ clazz::clazz()
 clazz::clazz(const char* name)
 {
     _ref = jni::find_class(name);
+}
+
+clazz::clazz(java::object classObject)
+{
+    _ref = classObject.ref();
 }
 
 std::string clazz::name()
@@ -76,6 +81,45 @@ method_list clazz::get_constructors()
     return method_list(_ref, methods);
 }
 
+java::object clazz::call_static_method(java::method m, ...)
+{
+    va_list args;
+    va_start(args, m);
+
+    auto cls = native();
+    auto id = m.id();
+    auto return_type = m.return_type();
+
+    java::object ret;
+
+    if (return_type == "void")
+    {
+        jni::call_static_methodv<void>(cls, id, args);
+    }
+    else if (return_type == "boolean")
+        ret = object(jni::call_static_method<jboolean>(cls, id, args));
+    else if (return_type == "byte")
+        ret = object(jni::call_static_method<jbyte>(cls, id, args));
+    else if (return_type == "char")
+        ret = object(jni::call_static_method<jchar>(cls, id, args));
+    else if (return_type == "double")
+        ret = object(jni::call_static_method<jdouble>(cls, id, args));
+    else if (return_type == "float")
+        ret = object(jni::call_static_method<jfloat>(cls, id, args));
+    else if (return_type == "int")
+        ret = object(jni::call_static_method<jint>(cls, id, args));
+    else if (return_type == "long")
+        ret = object(jni::call_static_method<jlong>(cls, id, args));
+    else if (return_type == "short")
+        ret = object(jni::call_static_method<jshort>(cls, id, args));
+    else
+        ret = object(jni::call_static_method<jobject>(cls, id, args));
+
+    va_end(args);
+
+    return ret;
+}
+
 #define do_call_static_method(cls, id, return_type, ...) \
     if (return_type == "void") \
     { \
@@ -137,6 +181,30 @@ object clazz::call_static(const char* method_name, object a1, object a2, object 
     auto m = lookup_method(method_name, classes);
     do_call_static_method((jclass)_ref.get(), m.id(), m.return_type(), a1.native(), a2.native(), a3.native());
 }
+
+object clazz::call_static(const char* method_name, object a1, object a2, object a3, object a4)
+{
+    std::vector<clazz> classes;
+    classes.push_back(a1.get_clazz());
+    classes.push_back(a2.get_clazz());
+    classes.push_back(a3.get_clazz());
+    classes.push_back(a4.get_clazz());
+    auto m = lookup_method(method_name, classes);
+    do_call_static_method((jclass)_ref.get(), m.id(), m.return_type(), a1.native(), a2.native(), a3.native(), a4.native());
+}
+
+java::clazz clazz::from_value(jint arg)
+{
+    return java::clazz("java/lang/Integer").static_field("TYPE");
+}
+
+java::clazz clazz::from_value(java::object& arg)
+{
+    return arg.get_clazz();
+}
+
+jobject clazz::get_native(java::object& value) { return value.native(); }
+jint clazz::get_native(jint value) { return value; }
 
 clazz java::load_class(const char* class_name, jbyte* class_data, jsize size)
 {

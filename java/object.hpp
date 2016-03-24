@@ -1,7 +1,7 @@
 
-#include "java\object.h"
-#include "java\jvm.h"
-#include "java\clazz.h"
+#include "object.h"
+#include "jvm.h"
+#include "clazz.h"
 
 using namespace java;
 
@@ -32,14 +32,14 @@ clazz object::get_clazz()
 {
     switch (_type)
     {
-    case jboolean_value: return jni::find_class("java/lang/Boolean");
-    case jbyte_value: return jni::find_class("java/lang/Byte");
-    case jchar_value: return jni::find_class("java/lang/Character");
-    case jshort_value: return jni::find_class("java/lang/Short");
-    case jint_value: return jni::find_class("java/lang/Integer");
-    case jlong_value: return jni::find_class("java/lang/Long");
-    case jfloat_value: return jni::find_class("java/lang/Float");
-    case jdouble_value: return jni::find_class("java/lang/Double");
+    case jboolean_value: return java::clazz("java/lang/Boolean").static_field("TYPE");
+    case jbyte_value: return java::clazz("java/lang/Byte").static_field("TYPE");
+    case jchar_value: return java::clazz("java/lang/Character").static_field("TYPE");
+    case jshort_value: return java::clazz("java/lang/Short").static_field("TYPE");
+    case jint_value: return java::clazz("java/lang/Integer").static_field("TYPE");
+    case jlong_value: return java::clazz("java/lang/Long").static_field("TYPE");
+    case jfloat_value: return java::clazz("java/lang/Float").static_field("TYPE");
+    case jdouble_value: return java::clazz("java/lang/Double").static_field("TYPE");
     case jobject_value: return _value.l == nullptr ? clazz() : clazz(jni::get_object_class(native()));
     default:
         throw std::exception("Unsupported Java type");

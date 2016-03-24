@@ -71,6 +71,29 @@ namespace java
         object call_static (const char* method_name, object a1);
         object call_static (const char* method_name, object a1, object a2);
         object call_static (const char* method_name, object a1, object a2, object a3);
+        object call_static(const char* method_name, object a1, object a2, object a3, object a4);
+
+#if 0
+        template <typename T1, typename T2, typename T3, typename T4>
+        java::object call_static(const char* method_name, T1 a1, T2 a2, T3 a3, T4 a4)
+        {
+            std::vector<clazz> classes;
+            classes.push_back(from_value(a1));
+            classes.push_back(from_value(a2));
+            classes.push_back(from_value(a3));
+            classes.push_back(from_value(a4));
+            auto m = lookup_method(method_name, classes);
+            return call_static_method(m, get_native(a1), get_native(a2), get_native(a3), get_native(a4));
+        }
+#endif
+        static java::clazz clazz::from_value(java::object& arg);
+        static java::clazz clazz::from_value(jint arg);
+
+    private:
+        java::object call_static_method(java::method m, ...);
+
+        static jobject get_native(java::object& value);
+        static jint get_native(jint value);
     };
 
     // This function can be used to load classes from raw compiled class data 

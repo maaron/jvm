@@ -375,7 +375,11 @@ namespace java
         // the vm was constructed using a pre-existing JNIEnv pointer.
         ~vm()
         {
-            if (_is_owner) _jvm->DestroyJavaVM();
+            if (_is_owner)
+            {
+                _jvm->DestroyJavaVM();
+                internal::set_tls_value(nullptr);
+            }
         }
 
         // Attaches the current thread to this JVM.  Make sure to call 

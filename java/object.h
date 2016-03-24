@@ -118,6 +118,11 @@ namespace java
             if (_type != jdouble_value) throw std::exception("Java object is not a double");
             return _value.d;
         }
+        std::string as_string() const
+        {
+            if (_type != jobject_value) throw std::exception("Java object is not a java.lang.String");
+            return jstring_str((jstring)native());
+        }
 
         local_ref<jobject> ref() { return _ref; }
         
@@ -191,7 +196,10 @@ namespace java
 
     object create(const char* class_name, object a1);
 
-    // Creates a new object (non-primitive) array
+    // Creates a new object (non-primitive) array.  This function is not 
+    // suitable for creating primitive arrays, although it may be tempting 
+    // to pass something like "java/lang/Integer" as the first parameter.  
+    // Use create_array<jint>(size) instead.
     object create_array(const char* class_name, size_t size, object initial);
 
     // Creates a new primitive array.  The type parameter specifies the JNI 

@@ -1,5 +1,6 @@
 
-#include "java\jvm.h"
+#include "jvm.h"
+#include "exception.h"
 
 namespace java
 {

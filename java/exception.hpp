@@ -1,7 +1,7 @@
 
-#include "java\exception.h"
-#include "java\jvm.h"
-#include "java\object.h"
+#include "exception.h"
+#include "jvm.h"
+#include "object.h"
 
 namespace java
 {
