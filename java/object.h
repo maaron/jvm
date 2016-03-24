@@ -69,18 +69,44 @@ namespace java
         // if a field with the given name is not found.
         object field(const char* name);
 
-        // Wrapper around an object's java.lang.Object.toString() method.
-        std::string to_string();
+        bool is_void() const;
 
-		bool as_bool() const;
-		jbyte as_byte() const;
-		jchar as_char() const;
-		jshort as_short() const;
-		jint as_int() const;
-		jlong as_long() const;
-		jfloat as_float() const;
-		jdouble as_double() const;
-		std::string as_string() const;
+        bool is_null() const;
+        bool is_ref() const;
+
+        bool is_bool() const;
+        bool as_bool() const;
+		
+        bool is_byte() const;
+        jbyte as_byte() const;
+		
+        bool is_char() const;
+        jchar as_char() const;
+		
+        bool is_short() const;
+        jshort as_short() const;
+		
+        bool is_int() const;
+        jint as_int() const;
+		
+        bool is_long() const;
+        jlong as_long() const;
+		
+        bool is_float() const;
+        jfloat as_float() const;
+		
+        bool is_double() const;
+        jdouble as_double() const;
+		
+        bool is_string() const;
+        std::string as_string() const;
+
+        bool is_array() const;
+
+        // Don't confuse this with as_string().  This calls the 
+        // Object.toString() method, whereas as_string() assumes the object 
+        // is itself a java.lang.String.
+        std::string to_string() const;
 
         local_ref<jobject> ref() { return _ref; }
         
@@ -95,11 +121,10 @@ namespace java
         // array.  Otherwise, an exception is thrown.
         jsize array_size();
 
+        // Returns a proxy object that can be used to set or get a value at a 
+        // particular index.  If the object is not an array type, an exception 
+        // is thrown.
         array_element operator[](size_t index);
-
-        // Returns a list of methods this object supports.  See 
-        // java.lang.Class.getMethods() method for more information.
-        //method_list get_methods();
 
         // These functions call Java methods on the object given the method 
         // name and a number of arguments.  An exception is thrown if an 
@@ -108,6 +133,11 @@ namespace java
         object call(const char* method_name, object a1);
         object call(const char* method_name, object a1, object a2);
         object call(const char* method_name, object a1, object a2, object a3);
+        object call(const char* method_name, object a1, object a2, object a3, object a4);
+        object call(const char* method_name, object a1, object a2, object a3, object a4, object a5);
+        object call(const char* method_name, object a1, object a2, object a3, object a4, object a5, object a6);
+        object call(const char* method_name, object a1, object a2, object a3, object a4, object a5, object a6, object a7);
+        object call(const char* method_name, object a1, object a2, object a3, object a4, object a5, object a6, object a7, object a8);
     };
 
     // This class is used for updating elements in a Java primitive (int, 

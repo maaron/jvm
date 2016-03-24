@@ -40,60 +40,106 @@ namespace java
         case jlong_value: return java::clazz("java/lang/Long").static_field("TYPE");
         case jfloat_value: return java::clazz("java/lang/Float").static_field("TYPE");
         case jdouble_value: return java::clazz("java/lang/Double").static_field("TYPE");
-        case jobject_value: return _value.l == nullptr ? clazz() : clazz(jni::get_object_class(native()));
-		    case void_value: throw std::exception("Null object reference");
+        case jobject_value: 
+            if (_value.l == nullptr) throw std::exception("Null object reference");
+            return clazz(jni::get_object_class(native()));
+		    case void_value: throw std::exception("value is void");
+
         default:
             throw std::exception("Unsupported Java type");
         }
     }
 
-	bool object::as_bool() const
+    bool object::is_void() const
+    {
+        return (_type == void_value);
+    }
+
+    bool object::is_null() const 
+    {
+        return (_type == jobject_value && _value.l == nullptr);
+    }
+
+    bool object::is_ref() const
+    {
+        return _type == jobject_value;
+    }
+
+    bool object::is_bool() const { return _type == jboolean_value; }
+    bool object::as_bool() const
 	{
 		if (_type != jboolean_value) throw std::exception("Java object is not a boolean");
 		return _value.z == JNI_TRUE;
 	}
+
+    bool object::is_byte() const { return _type == jbyte_value; }
 	jbyte object::as_byte() const
 	{
 		if (_type != jbyte_value) throw std::exception("Java object is not a byte");
 		return _value.b;
 	}
+
+    bool object::is_char() const { return _type == jchar_value; }
 	jchar object::as_char() const
 	{
 		if (_type != jchar_value) throw std::exception("Java object is not a char");
 		return _value.c;
 	}
+
+    bool object::is_short() const { return _type == jshort_value; }
 	jshort object::as_short() const
 	{
 		if (_type != jshort_value) throw std::exception("Java object is not a short");
 		return _value.s;
 	}
+
+    bool object::is_int() const { return _type == jint_value; }
 	jint object::as_int() const
 	{
 		if (_type != jint_value) throw std::exception("Java object is not a int");
 		return _value.i;
 	}
+
+    bool object::is_long() const { return _type == jlong_value; }
 	jlong object::as_long() const
 	{
 		if (_type != jlong_value) throw std::exception("Java object is not a long");
 		return _value.j;
 	}
+
+    bool object::is_float() const { return _type == jfloat_value; }
 	jfloat object::as_float() const
 	{
 		if (_type != jfloat_value) throw std::exception("Java object is not a float");
 		return _value.f;
 	}
+
+    bool object::is_double() const { return _type == jdouble_value; }
 	jdouble object::as_double() const
 	{
 		if (_type != jdouble_value) throw std::exception("Java object is not a double");
 		return _value.d;
 	}
+
+    bool object::is_string() const
+    {
+        auto cls = get_clazz();
+        clazz stringCls("java/lang/String");
+        return cls.call("equals", stringCls).as_bool();
+    }
 	std::string object::as_string() const
 	{
-		auto cls = get_clazz();
-		clazz stringCls("java/lang/String");
-		if (!cls.call("equals", stringCls).as_bool()) throw std::exception("Java object is not a String");
+		if (!is_string()) throw std::exception("Java object is not a String");
 		return jstring_str(reinterpret_cast<jstring>(native()));
 	}
+
+    bool object::is_array() const
+    {
+        if (is_null()) return false;
+
+        auto name = get_clazz().name();
+        return name.size() > 1 && name[0] == '[';
+    }
 
     jsize object::array_size()
     {
@@ -122,7 +168,7 @@ namespace java
         }
     }
 
-    std::string object::to_string()
+    std::string object::to_string() const
     {
         auto toString = jni::get_method_id(get_clazz().native(), "toString", "()Ljava/lang/String;");
         local_ref<jstring> jstr(jni::call_method<jobject>(_value.l, toString));
@@ -211,6 +257,66 @@ namespace java
         classes.push_back(a3.get_clazz());
         auto m = get_clazz().lookup_method(method_name, classes);
         return call_method(_value.l, m.return_type(), m.id(), a1.native(), a2.native(), a3.native());
+    }
+    object object::call(const char* method_name, object a1, object a2, object a3, object a4)
+    {
+        std::vector<clazz> classes;
+        classes.push_back(a1.get_clazz());
+        classes.push_back(a2.get_clazz());
+        classes.push_back(a3.get_clazz());
+        classes.push_back(a4.get_clazz());
+        auto m = get_clazz().lookup_method(method_name, classes);
+        return call_method(_value.l, m.return_type(), m.id(), a1.native(), a2.native(), a3.native(), a4.native());
+    }
+    object object::call(const char* method_name, object a1, object a2, object a3, object a4, object a5)
+    {
+        std::vector<clazz> classes;
+        classes.push_back(a1.get_clazz());
+        classes.push_back(a2.get_clazz());
+        classes.push_back(a3.get_clazz());
+        classes.push_back(a4.get_clazz());
+        classes.push_back(a5.get_clazz());
+        auto m = get_clazz().lookup_method(method_name, classes);
+        return call_method(_value.l, m.return_type(), m.id(), a1.native(), a2.native(), a3.native(), a4.native(), a5.native());
+    }
+    object object::call(const char* method_name, object a1, object a2, object a3, object a4, object a5, object a6)
+    {
+        std::vector<clazz> classes;
+        classes.push_back(a1.get_clazz());
+        classes.push_back(a2.get_clazz());
+        classes.push_back(a3.get_clazz());
+        classes.push_back(a4.get_clazz());
+        classes.push_back(a5.get_clazz());
+        classes.push_back(a6.get_clazz());
+        auto m = get_clazz().lookup_method(method_name, classes);
+        return call_method(_value.l, m.return_type(), m.id(), a1.native(), a2.native(), a3.native(), a4.native(), a5.native(), a6.native());
+    }
+    object object::call(const char* method_name, object a1, object a2, object a3, object a4, object a5, object a6, object a7)
+    {
+        std::vector<clazz> classes;
+        classes.push_back(a1.get_clazz());
+        classes.push_back(a2.get_clazz());
+        classes.push_back(a3.get_clazz());
+        classes.push_back(a4.get_clazz());
+        classes.push_back(a5.get_clazz());
+        classes.push_back(a6.get_clazz());
+        classes.push_back(a7.get_clazz());
+        auto m = get_clazz().lookup_method(method_name, classes);
+        return call_method(_value.l, m.return_type(), m.id(), a1.native(), a2.native(), a3.native(), a4.native(), a5.native(), a6.native(), a7.native());
+    }
+    object object::call(const char* method_name, object a1, object a2, object a3, object a4, object a5, object a6, object a7, object a8)
+    {
+        std::vector<clazz> classes;
+        classes.push_back(a1.get_clazz());
+        classes.push_back(a2.get_clazz());
+        classes.push_back(a3.get_clazz());
+        classes.push_back(a4.get_clazz());
+        classes.push_back(a5.get_clazz());
+        classes.push_back(a6.get_clazz());
+        classes.push_back(a7.get_clazz());
+        classes.push_back(a8.get_clazz());
+        auto m = get_clazz().lookup_method(method_name, classes);
+        return call_method(_value.l, m.return_type(), m.id(), a1.native(), a2.native(), a3.native(), a4.native(), a5.native(), a6.native(), a7.native(), a8.native());
     }
 
     array_element& array_element::operator= (const object& rhs)

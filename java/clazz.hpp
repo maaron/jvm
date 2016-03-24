@@ -16,6 +16,8 @@ namespace java
 
 	clazz::clazz(jclass cls) : object(cls) {}
 
+    clazz::clazz(java::object obj) : object(obj) {}
+
     std::string clazz::name()
     {
         clazz cls_cls(jni::get_object_class(_ref.get()));

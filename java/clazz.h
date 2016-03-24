@@ -1,8 +1,8 @@
 #pragma once
 
-#include "java.h"
-#include "java\method.h"
-#include "java\object.h"
+#include "..\java.h"
+#include "method.h"
+#include "object.h"
 #include <memory>
 
 namespace java
