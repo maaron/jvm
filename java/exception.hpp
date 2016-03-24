@@ -5,12 +5,11 @@
 
 namespace java
 {
-
     exception::exception(jthrowable t)
         : _t(t), _msg(""), object(t)
     {
         suspend();
-        _msg = call("getMessage");
+        _msg = call("getMessage").as_string();
         resume();
     }
 
@@ -38,5 +37,4 @@ namespace java
         t.call("printStackTrace");
         resume();
     }
-
 }

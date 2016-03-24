@@ -335,7 +335,7 @@ namespace java
             internal_args.nOptions = opts.size();
             internal_args.options = internal_opts.data();
 
-            JNIEnv* env;
+            JNIEnv* env = nullptr;
             jint status = p_JNI_CreateJavaVM(&_jvm, (void**)&env, &internal_args);
             if (status != JNI_OK)
             {

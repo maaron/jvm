@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="jvm">
+      <UniqueIdentifier>{a50a6e41-aa46-42a0-878e-c06d55516671}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jvm\java">
+      <UniqueIdentifier>{f912abb3-b76f-49ea-8af8-ccca829a5b5d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java.h">
+      <Filter>jvm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java.hpp">
+      <Filter>jvm</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java\clazz.h">
+      <Filter>jvm\java</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java\clazz.hpp">
+      <Filter>jvm\java</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java\exception.h">
+      <Filter>jvm\java</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java\exception.hpp">
+      <Filter>jvm\java</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java\jvm.h">
+      <Filter>jvm\java</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java\jvm.hpp">
+      <Filter>jvm\java</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java\method.h">
+      <Filter>jvm\java</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java\method.hpp">
+      <Filter>jvm\java</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java\object.h">
+      <Filter>jvm\java</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java\object.hpp">
+      <Filter>jvm\java</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java\type_traits.h">
+      <Filter>jvm\java</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java\type_traits.hpp">
+      <Filter>jvm\java</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java\thread_context.h">
+      <Filter>jvm\java</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ConsoleApplication1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

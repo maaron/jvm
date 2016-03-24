@@ -54,7 +54,7 @@ namespace java
         object(jshort native) : _type(jshort_value) { _value.s = native; }
 
         // Returns the clazz object associated with the current object.
-        clazz get_clazz();
+        clazz get_clazz() const;
         
         // This constructor is a convenience for passing strings to Java 
         // methods.  It is the same as the jobject constructor, but allocates 
@@ -72,57 +72,15 @@ namespace java
         // Wrapper around an object's java.lang.Object.toString() method.
         std::string to_string();
 
-        // Convenience operator overload for the to_string() method.
-        operator std::string()
-        {
-            return to_string();
-        }
-
-        bool as_bool() const
-        {
-            if (_type != jboolean_value) throw std::exception("Java object is not a boolean");
-            return _value.z == JNI_TRUE;
-        }
-        jbyte as_byte() const
-        {
-            if (_type != jbyte_value) throw std::exception("Java object is not a byte");
-            return _value.b;
-        }
-        jchar as_char() const
-        {
-            if (_type != jchar_value) throw std::exception("Java object is not a char");
-            return _value.c;
-        }
-        jshort as_short() const
-        {
-            if (_type != jshort_value) throw std::exception("Java object is not a short");
-            return _value.s;
-        }
-        jint as_int() const
-        {
-            if (_type != jint_value) throw std::exception("Java object is not a int");
-            return _value.i;
-        }
-        jlong as_long() const
-        {
-            if (_type != jlong_value) throw std::exception("Java object is not a long");
-            return _value.j;
-        }
-        jfloat as_float() const
-        {
-            if (_type != jfloat_value) throw std::exception("Java object is not a float");
-            return _value.f;
-        }
-        jdouble as_double() const
-        {
-            if (_type != jdouble_value) throw std::exception("Java object is not a double");
-            return _value.d;
-        }
-        std::string as_string() const
-        {
-            if (_type != jobject_value) throw std::exception("Java object is not a java.lang.String");
-            return jstring_str((jstring)native());
-        }
+		bool as_bool() const;
+		jbyte as_byte() const;
+		jchar as_char() const;
+		jshort as_short() const;
+		jint as_int() const;
+		jlong as_long() const;
+		jfloat as_float() const;
+		jdouble as_double() const;
+		std::string as_string() const;
 
         local_ref<jobject> ref() { return _ref; }
         

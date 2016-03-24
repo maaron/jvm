@@ -3,21 +3,18 @@
 #include <vector>
 #include <algorithm>
 
-using namespace java;
-
+namespace java
+{
 clazz::clazz()
 {
 }
 
 clazz::clazz(const char* name)
+		: object(jni::find_class(name))
 {
-    _ref = jni::find_class(name);
 }
 
-clazz::clazz(java::object classObject)
-{
-    _ref = classObject.ref();
-}
+	clazz::clazz(jclass cls) : object(cls) {}
 
 std::string clazz::name()
 {
@@ -210,4 +207,5 @@ clazz java::load_class(const char* class_name, jbyte* class_data, jsize size)
 {
     auto loader = java::clazz("java/lang/ClassLoader").call_static("getSystemClassLoader");
     return clazz(jni::define_class(class_name, loader.native(), class_data, size));
+}
 }

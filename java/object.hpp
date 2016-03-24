@@ -3,8 +3,8 @@
 #include "jvm.h"
 #include "clazz.h"
 
-using namespace java;
-
+namespace java
+{
 object::object(const char* str)
     : _type(jobject_value)
 {
@@ -28,7 +28,7 @@ void object::make_global()
     }
 }
 
-clazz object::get_clazz()
+	clazz object::get_clazz() const
 {
     switch (_type)
     {
@@ -41,10 +41,59 @@ clazz object::get_clazz()
     case jfloat_value: return java::clazz("java/lang/Float").static_field("TYPE");
     case jdouble_value: return java::clazz("java/lang/Double").static_field("TYPE");
     case jobject_value: return _value.l == nullptr ? clazz() : clazz(jni::get_object_class(native()));
+		case void_value: throw std::exception("Null object reference");
     default:
         throw std::exception("Unsupported Java type");
     }
 }
+
+	bool object::as_bool() const
+	{
+		if (_type != jboolean_value) throw std::exception("Java object is not a boolean");
+		return _value.z == JNI_TRUE;
+	}
+	jbyte object::as_byte() const
+	{
+		if (_type != jbyte_value) throw std::exception("Java object is not a byte");
+		return _value.b;
+	}
+	jchar object::as_char() const
+	{
+		if (_type != jchar_value) throw std::exception("Java object is not a char");
+		return _value.c;
+	}
+	jshort object::as_short() const
+	{
+		if (_type != jshort_value) throw std::exception("Java object is not a short");
+		return _value.s;
+	}
+	jint object::as_int() const
+	{
+		if (_type != jint_value) throw std::exception("Java object is not a int");
+		return _value.i;
+	}
+	jlong object::as_long() const
+	{
+		if (_type != jlong_value) throw std::exception("Java object is not a long");
+		return _value.j;
+	}
+	jfloat object::as_float() const
+	{
+		if (_type != jfloat_value) throw std::exception("Java object is not a float");
+		return _value.f;
+	}
+	jdouble object::as_double() const
+	{
+		if (_type != jdouble_value) throw std::exception("Java object is not a double");
+		return _value.d;
+	}
+	std::string object::as_string() const
+	{
+		auto cls = get_clazz();
+		clazz stringCls("java/lang/String");
+		if (!cls.call("equals", stringCls).as_bool()) throw std::exception("Java object is not a String");
+		return jstring_str(reinterpret_cast<jstring>(native()));
+	}
 
 jsize object::array_size()
 {
@@ -184,9 +233,6 @@ array_element& array_element::operator= (const object& rhs)
     return *this;
 }
 
-namespace java
-{
-
     object create(const char* class_name)
     {
         clazz cls(class_name);
@@ -231,5 +277,4 @@ namespace java
         clazz cls(class_name);
         return object(jni::new_object_array(cls.native(), size, initial.native()));
     }
-
 }
