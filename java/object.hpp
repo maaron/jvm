@@ -40,9 +40,7 @@ namespace java
         case jlong_value: return java::clazz("java/lang/Long").static_field("TYPE");
         case jfloat_value: return java::clazz("java/lang/Float").static_field("TYPE");
         case jdouble_value: return java::clazz("java/lang/Double").static_field("TYPE");
-        case jobject_value: 
-            if (_value.l == nullptr) throw std::exception("Null object reference");
-            return clazz(jni::get_object_class(native()));
+		case jobject_value: return _value.l == nullptr ? clazz() : clazz(jni::get_object_class(native()));
 		    case void_value: throw std::exception("value is void");
 
         default:
@@ -179,6 +177,24 @@ namespace java
     {
         return get_clazz().call_static("getField", name).call("get", *this);
     }
+
+	object object::box() const
+	{
+		switch (_type)
+		{
+		case jboolean_value: return create("java/lang/Boolean", _value.z);
+		case jbyte_value: return create("java/lang/Byte", _value.b);
+		case jchar_value: return create("java/lang/Character", _value.c);
+		case jshort_value: return create("java/lang/Short", _value.s);
+		case jint_value: return create("java/lang/Integer", _value.i);
+		case jlong_value: return create("java/lang/Long", _value.j);
+		case jfloat_value: return create("java/lang/Float", _value.f);
+		case jdouble_value: return create("java/lang/Double", _value.d);
+
+		default:
+			return *this;
+		}
+	}
 
     object call_method(jobject obj, std::string& return_type, jmethodID id, ...)
     {

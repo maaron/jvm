@@ -40,7 +40,7 @@ namespace java
         local_ref<jclass> ref() const { return _ref; }
         jclass native() const { return reinterpret_cast<jclass>(_ref.get()); }
 
-        std::string name();
+        std::string name() const;
 
         // Returns a class field value with the given name.
         object static_field(const char* name);

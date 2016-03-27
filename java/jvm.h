@@ -17,6 +17,24 @@ namespace java
 {
     namespace internal
     {
+		struct vm_context
+		{
+			bool prox_class_loaded;
+			JavaVM* jvm;
+
+			vm_context(JavaVM* j)
+				: jvm(j), prox_class_loaded(false) {}
+		};
+
+		struct thread_context
+		{
+			JNIEnv* env;
+			vm_context* vm;
+
+			thread_context(vm_context* vm, JNIEnv* e)
+				: vm(vm), env(e) {}
+		};
+
         // This function returns the TLS index used by the library to store 
         // the thread-local JNIEnv pointer, allocating the index if 
         // neccessary.
@@ -34,6 +52,12 @@ namespace java
         // receive detach indication.  However, since the process is exiting,
         // it's probably not a big deal not to free the index anyway.
         void free_tls_index();
+
+		thread_context& get_thread_context();
+
+		void delete_thread_context();
+
+		void set_thread_context(const thread_context& context);
 
         // This function returns a non-null pointer to the JNIEnv associated 
         // with the JVM the current thread is attached to.  Throws an 
@@ -190,6 +214,7 @@ namespace java
         // This function converts a Java jstring into a std::string
         std::string jstring_str(jstring jstr);
 
+		void register_natives(jclass cls, JNINativeMethod* methods, jint num_methods);
     }
 
     // This class provides automatic garbage collection for local references 
@@ -296,6 +321,11 @@ namespace java
     // Windows).
     void load_jvmdll(const char* path);
 
+	namespace internal
+	{
+		
+	}
+
     // This class is used to initialize a JVM instance and associate it with 
     // the current thread.  Upon destruction of this object, the JVM wil 
     // also be shutdown.  Thus, the object must stay alive for the duration 
@@ -309,7 +339,7 @@ namespace java
     // threads).
     class vm
     {
-        JavaVM* _jvm;
+		internal::vm_context _vm;
         bool _is_owner;
 
         void init(const vm_args& args)
@@ -335,27 +365,27 @@ namespace java
             internal_args.nOptions = opts.size();
             internal_args.options = internal_opts.data();
 
-            JNIEnv* env = nullptr;
-            jint status = p_JNI_CreateJavaVM(&_jvm, (void**)&env, &internal_args);
+			JNIEnv* env;
+            jint status = p_JNI_CreateJavaVM(&_vm.jvm, (void**)&env, &internal_args);
             if (status != JNI_OK)
             {
                 throw std::exception("JNI_CreateJavaVM failed");
             }
 
-            internal::set_tls_value(env);
+			internal::set_thread_context(internal::thread_context(&_vm, env));
         }
 
     public:
         // Creates and initializes a new JVM instance using the specified 
         // arguments.
-        vm(const vm_args& args) : _is_owner(true)
+        vm(const vm_args& args) : _is_owner(true), _vm(nullptr)
         {
             init(args);
         }
 
         // Creates and initializes a new JVM instance using a default set of 
         // arguments.
-        vm() : _is_owner(true)
+        vm() : _is_owner(true), _vm(nullptr)
         {
             init(vm_args());
         }
@@ -363,12 +393,12 @@ namespace java
         // This constructor can be used by Java extension libraries written 
         // in C++.  The env parameter must be a valid JNIEnv pointer.  The 
         // destructor for this class will not destroy the JVM in this case.
-        vm(JNIEnv* env) : _is_owner(false)
+        vm(JNIEnv* env) : _is_owner(false), _vm(nullptr)
         {
-            if (env->GetJavaVM(&_jvm) != 0)
+            if (env->GetJavaVM(&_vm.jvm) != 0)
                 throw std::exception("GetJavaVM failed");
 
-            internal::set_tls_value(env);
+			internal::set_thread_context(internal::thread_context(&_vm, env));
         }
 
         // Destroys the object and the JVM instance along with it, unless 
@@ -377,8 +407,8 @@ namespace java
         {
             if (_is_owner)
             {
-                _jvm->DestroyJavaVM();
-                internal::set_tls_value(nullptr);
+                _vm.jvm->DestroyJavaVM();
+				internal::delete_thread_context();
             }
         }
 
@@ -394,11 +424,11 @@ namespace java
                 args.name = nullptr;
                 args.group = nullptr;
 
-                JNIEnv* env;
-                if (_jvm->AttachCurrentThread((void**)&env, &args) != JNI_OK)
+				JNIEnv* env;
+				if (_vm.jvm->AttachCurrentThread((void**)&env, &args) != JNI_OK)
                     throw std::exception("AttachCurrentThread failed");
 
-                internal::set_tls_value(env);
+				internal::set_thread_context(internal::thread_context(&_vm, env));
             }
         }
 
@@ -406,13 +436,8 @@ namespace java
         // memory.
         void detach_thread()
         {
-            if (internal::get_tls_value() != nullptr)
-            {
-                if (_jvm->DetachCurrentThread() != JNI_OK)
-                    throw std::exception("DetachCurrentThread failed");
-
-                internal::set_tls_value(nullptr);
-            }
+            _vm.jvm->DetachCurrentThread();
+			internal::delete_thread_context();
         }
     };
 

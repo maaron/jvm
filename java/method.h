@@ -11,14 +11,13 @@ namespace java
     // Reflection is used to gather method details from the JVM.
     class method
     {
-        local_ref<jclass> _class;
         jmethodID _id;
         local_ref<jobject> _methodObj;
 
     public:
         method();
         
-        method(local_ref<jclass> cls, local_ref<jobject> methodObj);
+        method(local_ref<jobject> methodObj);
 
         // Returns the native JVM jmethodID for this method
         jmethodID id() { return _id; }

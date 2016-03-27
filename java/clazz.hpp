@@ -1,4 +1,5 @@
 #include "clazz.h"
+#include "nosuchmethod_exception.h"
 
 #include <vector>
 #include <algorithm>
@@ -18,7 +19,7 @@ namespace java
 
     clazz::clazz(java::object obj) : object(obj) {}
 
-    std::string clazz::name()
+    std::string clazz::name() const
     {
         clazz cls_cls(jni::get_object_class(_ref.get()));
         auto getName = jni::get_method_id(cls_cls.native(), "getName", "()Ljava/lang/String;");
@@ -28,7 +29,7 @@ namespace java
 
     object clazz::static_field(const char* name)
     {
-        return object(*this).call("getField", name).call("get", object::null());
+        return call("getField", name).call("get", object::null());
     }
 
     method clazz::lookup_method(const char* name, const std::vector<clazz>& classes)
@@ -40,7 +41,7 @@ namespace java
             return ret;
         });
     
-        if (match == methods.end()) throw std::exception("Method lookup failed");
+        if (match == methods.end()) throw nosuchmethod_exception(*this, name, classes);
         return *match;
     }
 
@@ -52,7 +53,7 @@ namespace java
             return ctor.is_args_assignable(classes);
         });
     
-        if (match == ctors.end()) throw std::exception("Method lookup failed");
+        if (match == ctors.end()) throw nosuchmethod_exception(*this, "<init>", classes);
         return *match;
     }
 

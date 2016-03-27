@@ -72,7 +72,13 @@
     <ClInclude Include="..\java\type_traits.hpp">
       <Filter>jvm\java</Filter>
     </ClInclude>
-    <ClInclude Include="..\java\thread_context.h">
+    <ClInclude Include="..\java\nosuchmethod_exception.h">
+      <Filter>jvm\java</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java\interface_proxy.h">
+      <Filter>jvm\java</Filter>
+    </ClInclude>
+    <ClInclude Include="..\java\interface_proxy.hpp">
       <Filter>jvm\java</Filter>
     </ClInclude>
   </ItemGroup>

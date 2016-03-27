@@ -8,3 +8,4 @@
 #include "java\method.h"
 #include "java\object.h"
 #include "java\exception.h"
+#include "java\interface_proxy.h"
