@@ -297,7 +297,7 @@ namespace java
     void load_jvmdll(const char* path);
 
     // This class is used to initialize a JVM instance and associate it with 
-    // the current thread.  Upon destruction of this object, the JVM wil 
+    // the current thread.  Upon destruction of this object, the JVM will 
     // also be shutdown.  Thus, the object must stay alive for the duration 
     // of any other function calls (including constructors) from the java::* 
     // namespace, even though the user need not pass references or pointers 
