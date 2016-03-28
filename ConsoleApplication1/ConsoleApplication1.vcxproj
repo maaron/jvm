@@ -153,13 +153,15 @@
     <ClInclude Include="..\java\clazz.hpp" />
     <ClInclude Include="..\java\exception.h" />
     <ClInclude Include="..\java\exception.hpp" />
+    <ClInclude Include="..\java\interface_proxy.h" />
+    <ClInclude Include="..\java\interface_proxy.hpp" />
     <ClInclude Include="..\java\jvm.h" />
     <ClInclude Include="..\java\jvm.hpp" />
     <ClInclude Include="..\java\method.h" />
     <ClInclude Include="..\java\method.hpp" />
+    <ClInclude Include="..\java\nosuchmethod_exception.h" />
     <ClInclude Include="..\java\object.h" />
     <ClInclude Include="..\java\object.hpp" />
-    <ClInclude Include="..\java\thread_context.h" />
     <ClInclude Include="..\java\type_traits.h" />
     <ClInclude Include="..\java\type_traits.hpp" />
     <ClInclude Include="stdafx.h" />

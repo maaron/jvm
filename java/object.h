@@ -126,6 +126,11 @@ namespace java
         // is thrown.
         array_element operator[](size_t index);
 
+		// This returns a boxed object if the current value is a primitive type.  
+		// Otherwise returns a copy of the current object (i.e., a new reference to 
+		// the same java object).
+		object box() const;
+
         // These functions call Java methods on the object given the method 
         // name and a number of arguments.  An exception is thrown if an 
         // appropriate method is not found.

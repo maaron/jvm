@@ -8,7 +8,7 @@ namespace java
     {
         static DWORD tlsIndex = TLS_OUT_OF_INDEXES;
 
-        DWORD get_tls_index()
+		DWORD get_tls_index()
         {
             // Allocate the TLS slot, if it hasn't been done already.  This 
             // should happen only once, and all threads use the same slot.
@@ -25,8 +25,7 @@ namespace java
         {
             auto index = get_tls_index();
 
-            if (::TlsFree(index) == FALSE)
-                throw std::exception("TlsFree failed");
+            ::TlsFree(index);
 
             tlsIndex = TLS_OUT_OF_INDEXES;
         }
@@ -48,15 +47,28 @@ namespace java
             }
         }
 
+		thread_context& get_thread_context()
+		{
+			thread_context* context = reinterpret_cast<thread_context*>(get_tls_value());
+			if (context == nullptr) throw std::exception("Thread not attached to the JVM");
+			return *context;
+		}
+
+		void delete_thread_context()
+		{
+			thread_context* context = reinterpret_cast<thread_context*>(get_tls_value());
+			if (context != nullptr) delete context;
+		}
+
+		void set_thread_context(const thread_context& context)
+		{
+			delete_thread_context();
+			set_tls_value(new thread_context(context));
+		}
+
         JNIEnv* get_env()
         {
-            LPVOID value = get_tls_value();
-            if (value == 0)
-            {
-                throw std::exception("Thread not attached to the JVM");
-            }
-
-            return (JNIEnv*)value;
+			return get_thread_context().env;
         }
 
     }
@@ -285,6 +297,11 @@ namespace java
             return ret;
         }
 
+		void register_natives(jclass cls, JNINativeMethod* methods, jint num_methods)
+		{
+			auto ret = internal::get_env()->RegisterNatives(cls, methods, num_methods);
+			if (ret != JNI_OK) throw std::exception("RegisterNatives failed");
+		}
     }
 
 }

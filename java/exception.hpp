@@ -9,7 +9,8 @@ namespace java
         : _t(t), _msg(""), object(t)
     {
         suspend();
-        _msg = call("getMessage").as_string();
+        auto msg = call("getMessage");
+		_msg = msg.is_null() ? "(null)" : msg.as_string();
         resume();
     }
 

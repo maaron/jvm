@@ -6,12 +6,12 @@
 namespace java
 {
 	method::method()
-		: _class(), _id(nullptr), _methodObj()
+		: _id(nullptr), _methodObj()
 	{
 	}
 
-	method::method(local_ref<jclass> cls, local_ref<jobject> methodObj)
-		: _class(cls), _id(jni::from_reflected_method(methodObj.get())), _methodObj(methodObj)
+	method::method(local_ref<jobject> methodObj)
+		: _id(jni::from_reflected_method(methodObj.get())), _methodObj(methodObj)
 	{
 	}
 
@@ -41,9 +41,9 @@ namespace java
 
 		for (long i = 0; i < num_args; i++)
 		{
-			local_ref<jclass> target = (jclass)jni::get_object_array_element(parameter_types.get(), i);
+			clazz target((jclass)jni::get_object_array_element(parameter_types.get(), i));
 			jclass src = classes[i].native();
-			if (src != nullptr && !jni::is_assignable_from(src, target.get()))
+			if (src != nullptr && !jni::is_assignable_from(src, target.native()))
 				return false;
 		}
 
@@ -65,7 +65,7 @@ namespace java
 
 	void method_iterator::get()
 	{
-		_current = method(_class, jni::get_object_array_element((jobjectArray)_methods.get(), _index));
+		_current = method(jni::get_object_array_element((jobjectArray)_methods.get(), _index));
 	}
 
 	method_list::method_list(local_ref<jclass> cls, local_ref<jobjectArray> methods) : _class(cls), _methods(methods)
